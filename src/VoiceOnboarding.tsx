@@ -22,7 +22,8 @@ export default function VoiceOnboarding({onComplete}:Props){
  const [listening,setListening]=useState(false);
  const [speaking,setSpeaking]=useState(false);
  const [transcript,setTranscript]=useState('');
- const [pending,setPending]=useState('');\n const [awaitingConfirmation,setAwaitingConfirmation]=useState(false);
+ const [pending,setPending]=useState('');
+ const [awaitingConfirmation,setAwaitingConfirmation]=useState(false);
  const [values,setValues]=useState<Values>(initial);
  const [message,setMessage]=useState('Choose a supported language, then press Start. Voice support depends on the browser and device.');
  const [error,setError]=useState('');
