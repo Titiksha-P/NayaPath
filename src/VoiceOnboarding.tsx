@@ -52,6 +52,7 @@ export default function VoiceOnboarding({onComplete}:Props){
  const [values,setValues]=useState<Values>(empty);
  const [story,setStory]=useState('');
  const recognition=useRef<any>(null);
+ const audioRef=useRef<HTMLAudioElement|null>(null);
  const active=useRef(true);
  const busy=useRef(false);
  const phaseRef=useRef(phase);
@@ -65,13 +66,19 @@ export default function VoiceOnboarding({onComplete}:Props){
  useEffect(()=>{valuesRef.current=values;},[values]);
  useEffect(()=>{storyRef.current=story;},[story]);
  const speechText=(p:typeof phase,i=index)=>p==='intro'?(welcome[lang.locale]||welcome['en-IN']):p==='literacy'?(literacy[lang.locale]||literacy['en-IN']):p==='questions'?((questions[lang.locale]||questions['en-IN'])[i]):p==='done'?(lang.locale==='hi-IN'?'धन्यवाद। अब आपकी जानकारी के आधार पर अवसर देखे जा सकते हैं।':'Thank you. We can now explore opportunities based on what you shared.'):'';
- const speak=useCallback((text:string,thenListen=true)=>{
-  if(!('speechSynthesis' in window)){setError('Speech playback is not available on this device.');setNeedsTap(true);return;}
-  window.speechSynthesis.cancel();
+ const speak=useCallback(async(text:string,thenListen=true)=>{
+  window.speechSynthesis?.cancel();audioRef.current?.pause();
+  setSpeaking(true);
+  try{
+   const code=languages.find(x=>x.locale===langRef.current.locale)?.code||'en';
+   const response=await fetch('/api/synthesize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,language:code})});
+   if(response.ok){const data=await response.json();const audio=new Audio('data:audio/wav;base64,'+data.audioContent);audioRef.current=audio;audio.onended=()=>{setSpeaking(false);if(thenListen&&active.current)startRef.current?.();};audio.onerror=()=>{setSpeaking(false);setError('Generated speech could not be played.');};await audio.play();return;}
+  }catch{/* Use the device voice as a fallback. */}
+  if(!('speechSynthesis' in window)){setSpeaking(false);setError('Speech playback is not available on this device.');setNeedsTap(true);return;}
   const u=new SpeechSynthesisUtterance(text);u.lang=langRef.current.locale;u.rate=.88;
   u.onstart=()=>setSpeaking(true);
   u.onend=()=>{setSpeaking(false);if(thenListen&&active.current)startRef.current?.();};
-  u.onerror=()=>{setSpeaking(false);setError('This device does not have a voice installed for this language.');if(thenListen)setNeedsTap(true);};
+  u.onerror=()=>{setSpeaking(false);setError('This device does not have a usable voice for this language.');if(thenListen)setNeedsTap(true);};
   window.speechSynthesis.speak(u);
  },[]);
  const applyAnswer=(text:string)=>{
@@ -115,7 +122,7 @@ export default function VoiceOnboarding({onComplete}:Props){
  },[]);
  startRef.current=startListening;
  const begin=useCallback(()=>{setNeedsTap(false);setError('');active.current=true;if(phaseRef.current==='intro')speak(welcome[langRef.current.locale]||welcome['en-IN']);else startListening();},[speak,startListening]);
- useEffect(()=>{active.current=true;const id=window.setTimeout(()=>begin(),350);return()=>{active.current=false;window.clearTimeout(id);recognition.current?.stop?.();window.speechSynthesis?.cancel?.();};},[]);
+ useEffect(()=>{active.current=true;const id=window.setTimeout(()=>begin(),350);return()=>{active.current=false;window.clearTimeout(id);recognition.current?.stop?.();window.speechSynthesis?.cancel?.();audioRef.current?.pause();};},[]);
  const changeLanguage=(locale:string)=>{const selected=languages.find(x=>x.locale===locale);if(!selected)return;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setLang(selected);langRef.current=selected;setError('');setNeedsTap(false);if(phaseRef.current==='intro'){speak(welcome[locale]||welcome['en-IN']);}else{setError('Language changed. Please continue speaking in the selected language.');speak(speechText(phaseRef.current,indexRef.current));}};
  const stop=()=>{active.current=false;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setListening(false);setSpeaking(false);setNeedsTap(true);setError('Conversation paused. Tap Continue when you are ready.');};
  const currentStatus=listening?'Listening — speak naturally':speaking?'Speaking to you':needsTap?'Microphone needs one tap':phase==='done'?'Conversation complete':'Ready';
