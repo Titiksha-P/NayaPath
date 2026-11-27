@@ -47,6 +47,8 @@ export default function VoiceOnboarding({ onComplete }: Props) {
   const [assistantReply, setAssistantReply] = useState("");
   const [error, setError] = useState("");
   const [profile, setProfile] = useState<Values>(empty);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
   const socketRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const contextRef = useRef<AudioContext | null>(null);
@@ -134,7 +136,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
 
         if (data.done && !completedRef.current) {
           completedRef.current = true;
-          onComplete(nextProfile, locale);
+          onCompleteRef.current(nextProfile, locale);
         }
 
         setThinking(false);
@@ -203,6 +205,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
 
           if (message.event === "session.ready") {
             const context = new AudioContext();
+            await context.resume();
             contextRef.current = context;
             const source = context.createMediaStreamSource(stream);
             const processor = context.createScriptProcessor(4096, 1, 1);
@@ -282,7 +285,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
       window.speechSynthesis?.cancel();
       stopAudioGraph();
     };
-  }, [onComplete]);
+  }, []);
 
   return (
     <section className="voice-onboarding voice-first voice-only" id="voice-start" aria-label="NayaPath live voice assistant">
