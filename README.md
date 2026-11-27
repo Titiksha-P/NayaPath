@@ -302,28 +302,20 @@ Made with curiosity, care and the belief that everyone deserves room to grow. �
 
 </div>
 
-## 🎙️ Sarvam speech-to-text
+## 🎙️ Live multilingual voice conversation (Sarvam)
 
-NayaPath currently uses **Sarvam Saaras v4** for the initial recorded voice story. Audio is sent to a server-side API route; the Sarvam API key is never exposed to browser code.
+NayaPath's voice onboarding is designed as a continuous, voice-only conversation. The user does not choose a language or fill a form first: the microphone opens, Sarvam Saaras v4 detects the spoken language, and NayaPath responds one turn at a time.
 
-- `/api/transcribe` — server-side speech-to-text using the official `sarvamai` JavaScript SDK and `saaras:v4`.
-- Original-language transcript is preserved.
-- An optional English translation can be requested as a separate transcription mode.
-- The browser uses the device's Speech Synthesis API for spoken prompts when an appropriate voice is available.
+- `/api/voice.ts` — authenticated server-side WebSocket proxy to Sarvam's Saaras v4 realtime streaming endpoint. The long-lived API key stays on the server.
+- `/api/voice-turn.ts` — translates the utterance to English for conversation reasoning, calls Sarvam-105B Conversations, translates the reply back, extracts explicitly stated profile fields, and generates spoken audio where Bulbul supports the language.
+- The browser streams mono 16 kHz LINEAR16 PCM in short frames. Interim transcripts appear while the user speaks; VAD detects the end of each turn.
+- The UI shows the original-language transcript and its English meaning. The assistant replies aloud and then resumes listening automatically.
+- The conversation starts by asking whether the person can read and write or mainly speaks, then adapts its questions to the details already shared. It must not ask the user to type.
 
 ### Configure Sarvam
 
-1. Copy `.env.example` to `.env` and set `SARVAM_API_KEY`. The local `.env` file must never be committed.
-2. Add `SARVAM_API_KEY` to Vercel Project → Settings → Environment Variables for production and redeploy.
-3. To make a real local API test, provide a short audio file (up to 30 seconds) and run:
+Set `SARVAM_API_KEY` as a **Secret** in Vercel Project → Settings → Environment Variables for Production, then redeploy. For local development, copy `.env.example` to `.env` and keep that file out of Git.
 
-```bash
-npm install
-npm run sarvam:stt -- ./sample.wav
-```
+### Language coverage and limitations
 
-The smoke test requires a valid API key and real audio input. A successful API response has not been claimed until this test has actually run.
-
-### Current voice limitations
-
-Sarvam is currently integrated for the initial recorded story, not yet for every follow-up turn or continuous live streaming. The follow-up microphone interaction still depends on browser speech recognition support. English translation is not currently wired into that browser follow-up path, and browser text-to-speech voice availability varies by device and language. Do not describe NayaPath as providing fully verified, error-free voice support in all 22 languages.
+Saaras v4 realtime STT and Sarvam Translate support all 22 scheduled Indian languages plus English. Bulbul v3 TTS supports 10 Indian languages plus English; for other languages the client attempts the device's installed speech voice. Device voice availability varies, so spoken replies are not yet guaranteed on every device for every language. This integration still needs real-device testing for microphone permissions, audio quality, latency, translation quality and profile extraction before it should be described as production-validated.
