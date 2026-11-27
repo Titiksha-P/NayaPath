@@ -137,15 +137,46 @@ export default function VoiceOnboarding({onComplete}:Props){
  },[]);
  startRef.current=startListening;
  const begin=useCallback(()=>{setNeedsTap(false);setError('');active.current=true;if(phaseRef.current==='intro')speak(welcome[langRef.current.locale]||welcome['en-IN']);else startListening();},[speak,startListening]);
- useEffect(()=>{active.current=false;return()=>{active.current=false;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();audioRef.current?.pause();};},[]);
+ useEffect(()=>{
+  let cancelled=false;let recorder:MediaRecorder|undefined;let stream:MediaStream|undefined;let timeout:number|undefined;
+  const captureFirstStory=async()=>{
+   try{
+    if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined')throw new Error('Automatic audio capture is not supported in this browser.');
+    stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    if(cancelled){stream.getTracks().forEach(t=>t.stop());return;}
+    const chunks:BlobPart[]=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+    recorder.onstop=async()=>{
+     stream?.getTracks().forEach(t=>t.stop());if(cancelled)return;
+     try{
+      const blob=new Blob(chunks,{type:recorder?.mimeType||'audio/webm'});if(!blob.size)throw new Error('No speech audio was captured.');
+      const base64=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');reader.onerror=()=>reject(new Error('Could not read microphone audio.'));reader.readAsDataURL(blob);});
+      const response=await fetch('/api/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audioContent:base64,language:'auto'})});
+      const data=await response.json();if(!response.ok)throw new Error(data.error||'Automatic language recognition is unavailable.');
+      const raw=String(data.language||'').toLowerCase();const detected=languages.find(x=>x.code===raw||x.locale.toLowerCase()===raw||x.locale.toLowerCase().startsWith(raw+'-'));
+      if(!detected)throw new Error('I heard your voice, but could not confidently identify its language. Please choose it from the language list.');
+      if(cancelled)return;
+      setLang(detected);langRef.current=detected;setHasChosenLanguage(true);setLastTranscript(data.transcript);setNeedsTap(false);setError('');
+      let understood=data.transcript;
+      if(detected.code!=='en'){try{const translated=await translateText(data.transcript,detected.code,'en');understood=translated.translated;setTranslationStatus('Your speech was transcribed and translated for internal understanding.');}catch{setTranslationStatus('Translation is unavailable. Your original speech is preserved; please verify the meaning before continuing.');}}
+      if(cancelled)return;
+      applyAnswer(understood);
+     }catch(err){if(!cancelled){setError(err instanceof Error?err.message:'Could not understand the first recording. Choose your language and try again.');setNeedsTap(true);}}
+    };
+    recorder.start();setListening(true);setNeedsTap(false);
+    timeout=window.setTimeout(()=>{if(recorder?.state==='recording')recorder.stop();},20000);
+   }catch(err){if(!cancelled){setListening(false);setNeedsTap(true);setError(err instanceof Error?err.message:'Please allow microphone access to tell your story.');}}
+  };
+  void captureFirstStory();
+  return()=>{cancelled=true;if(timeout)window.clearTimeout(timeout);if(recorder?.state==='recording')recorder.stop();stream?.getTracks().forEach(t=>t.stop());active.current=false;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();audioRef.current?.pause();};
+ },[]);
  const changeLanguage=(locale:string)=>{const selected=languages.find(x=>x.locale===locale);if(!selected)return;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setLang(selected);langRef.current=selected;setHasChosenLanguage(true);setError('');setNeedsTap(false);active.current=true;if(phaseRef.current==='intro'){speak(welcome[locale]||welcome['en-IN']);}else{setError('Language changed. Please continue speaking in the selected language.');speak(speechText(phaseRef.current,indexRef.current));}};
  const stop=()=>{active.current=false;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setListening(false);setSpeaking(false);setNeedsTap(true);setError('Conversation paused. Tap Continue when you are ready.');};
- const currentStatus=!hasChosenLanguage?'Choose your language':listening?'Listening — speak naturally':speaking?'Speaking to you':needsTap?'Microphone needs one tap':phase==='done'?'Conversation complete':'Ready';
+ const currentStatus=!hasChosenLanguage?(listening?'Listening to your story':'Waiting for your voice'):listening?'Listening — speak naturally':speaking?'Speaking to you':needsTap?'Microphone needs one tap':phase==='done'?'Conversation complete':'Ready';
  return <section className={'voice-onboarding voice-first '+(voiceOnly?'voice-only':'')} id="voice-start" aria-label="NayaPath voice assistant">
   <div className="voice-intro"><span>YOUR VOICE COMES FIRST</span><h2>Tell me what is <i>happening.</i></h2><p>You do not need to fill out a form. Just tell NayaPath what you need. The assistant will guide you by voice.</p></div>
   <div className="voice-console">
    <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>Speak naturally. The assistant listens after each spoken prompt.</small></div><label>YOUR LANGUAGE<select aria-label="Speech language" value={hasChosenLanguage?lang.locale:""} onChange={e=>changeLanguage(e.target.value)}><option value="" disabled>Choose your language</option>{languages.map(x=><option key={x.locale} value={x.locale}>{x.name}</option>)}</select></label></div>
-   <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={40}/><b>{currentStatus}</b><small>{hasChosenLanguage?lang.name+' · '+lang.locale:'Select a language to begin'}</small></div>
+   <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={40}/><b>{currentStatus}</b><small>{hasChosenLanguage?lang.name+' · '+lang.locale:'Speak naturally; I will identify your language'}</small></div>
    {phase==='intro'&&null}
    {phase==='literacy'&&<div className="voice-prompt voice-prompt-primary"><small>ONE QUICK QUESTION</small><p>{literacy[lang.locale]||literacy['en-IN']}</p></div>}
    {phase==='questions'&&<div className="voice-prompt voice-prompt-primary"><small>QUESTION {index+1} OF 8</small><p>{(questions[lang.locale]||questions['en-IN'])[index]}</p></div>}
@@ -157,7 +188,7 @@ export default function VoiceOnboarding({onComplete}:Props){
     {phase!=='intro'&&phase!=='done'&&<button onClick={()=>speak(speechText(phase,index),true)}><Volume2 size={17}/> Repeat aloud</button>}
     {phase!=='intro'&&phase!=='done'&&<button onClick={stop}>Pause conversation</button>}
    </div>
-   <div className="voice-foot"><span>{phase==='intro'?'Tell your story first':phase==='literacy'?'Speaking and reading preference':phase==='questions'?'Guided conversation · '+(index+1)+'/8':'Your conversation is complete'}</span><span>{voiceOnly?'Voice-first mode':'Voice + reading mode'}</span></div>
+   <div className="voice-foot"><span>{phase==='intro'?'Listening for your story':phase==='literacy'?'Speaking and reading preference':phase==='questions'?'Guided conversation · '+(index+1)+'/8':'Your conversation is complete'}</span><span>{voiceOnly?'Voice-first mode':'Voice + reading mode'}</span></div>
   </div>
  </section>;
 }
