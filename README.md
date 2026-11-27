@@ -142,6 +142,8 @@ The discovery results can surface a curated set of official, India-wide portals 
 
 Each resource is labelled as an India-wide directory or information portal. The user's city is not used to fabricate local vacancies. Local matching still requires checking the relevant district, participating centre/mandi, current batch, employer, eligibility and terms on the official destination. No portal card implies a live opening, subsidy approval, income estimate or guaranteed outcome.
 
+A location-aware referral is included for the **Delhi Employment Exchange**, which publishes vacancy-notification and skilled/semi-skilled short-duration hiring sections. It is shown only when the user enters Delhi as their location. The portal reported OTP-service disruption on 27 November 2026, so users are warned to check current service status. This is a link to the official portal, not an extracted vacancy list. For other locations, NayaPath currently uses India-wide official directories rather than inventing state or district listings.
+
 The source catalogue records a manual verification date and evidence summary. It is not an automated freshness monitor; links and programme details must be rechecked before each real-world referral. The UI includes a source-and-safety disclosure on every card.
 
 ## 🛡️ A future should fit real life—and real finances
