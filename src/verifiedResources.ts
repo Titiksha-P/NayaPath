@@ -23,7 +23,7 @@ export function matchVerifiedResources(profile:{occupation:string;skills:string;
   let relevance=0; const reasons:string[]=[];
   if(r.id==='ncs'){relevance=3;reasons.push('Government job-search and career-guidance directory');}
   const loc=profile.location.toLowerCase();
-  const isDelhi=/\\b(delhi|new delhi|nct of delhi)\\b/.test(loc);
+  const isDelhi=/(^|[^a-z])(delhi|new delhi|nct of delhi)([^a-z]|$)/.test(loc);
   if(r.id==='delhi-employment'&&isDelhi){relevance=11;reasons.push('Your stated location is Delhi; this is the official Delhi Employment Exchange portal');}
   if(r.id==='sidh'){relevance=2;reasons.push('Government skill-course and training-centre directory');}
   if(r.id==='kisan-sarathi'&&isFarmer){relevance=10;reasons.push('Agriculture-related work or skills match');}
