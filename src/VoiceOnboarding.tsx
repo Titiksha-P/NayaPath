@@ -75,11 +75,26 @@ export default function VoiceOnboarding({onComplete}:Props){
    if(response.ok){const data=await response.json();const audio=new Audio('data:audio/wav;base64,'+data.audioContent);audioRef.current=audio;audio.onended=()=>{setSpeaking(false);if(thenListen&&active.current)startRef.current?.();};audio.onerror=()=>{setSpeaking(false);setError('Generated speech could not be played.');};await audio.play();return;}
   }catch{/* Use the device voice as a fallback. */}
   if(!('speechSynthesis' in window)){setSpeaking(false);setError('Speech playback is not available on this device.');setNeedsTap(true);return;}
-  const u=new SpeechSynthesisUtterance(text);u.lang=langRef.current.locale;u.rate=.88;
-  u.onstart=()=>setSpeaking(true);
-  u.onend=()=>{setSpeaking(false);if(thenListen&&active.current)startRef.current?.();};
-  u.onerror=()=>{setSpeaking(false);setError('This device does not have a usable voice for this language.');if(thenListen)setNeedsTap(true);};
-  window.speechSynthesis.speak(u);
+  const synth=window.speechSynthesis;
+  const playWithAvailableVoice=()=>{
+   const u=new SpeechSynthesisUtterance(text);
+   const requested=langRef.current.locale;
+   const voices=synth.getVoices();
+   const base=requested.split('-')[0].toLowerCase();
+   const selected=voices.find(v=>v.lang.toLowerCase()===requested.toLowerCase())||voices.find(v=>v.lang.toLowerCase().startsWith(base+'-'))||(base==='en'?voices.find(v=>v.lang.toLowerCase().startsWith('en-')):undefined);
+   if(selected)u.voice=selected;
+   u.lang=selected?.lang||(base==='en'?'en-US':requested);u.rate=.9;
+   u.onstart=()=>{setSpeaking(true);setError('');};
+   u.onend=()=>{setSpeaking(false);if(thenListen&&active.current)startRef.current?.();};
+   u.onerror=(event:any)=>{setSpeaking(false);setError(event.error==='not-allowed'?'Allow audio playback in your browser, then tap Repeat aloud.':'Your browser could not play this language\'s voice. Try installing a system voice or using the voice service.');if(thenListen)setNeedsTap(true);};
+   synth.speak(u);
+  };
+  if(synth.getVoices().length){playWithAvailableVoice();}
+  else{
+   let done=false;const onVoices=()=>{if(done)return;done=true;synth.removeEventListener?.('voiceschanged',onVoices);playWithAvailableVoice();};
+   synth.addEventListener?.('voiceschanged',onVoices);
+   window.setTimeout(()=>{if(!done){done=true;synth.removeEventListener?.('voiceschanged',onVoices);playWithAvailableVoice();}},1200);
+  }
  },[]);
  const applyAnswer=(text:string)=>{
   const p=phaseRef.current;const loc=langRef.current.locale;const t=text.toLowerCase();
