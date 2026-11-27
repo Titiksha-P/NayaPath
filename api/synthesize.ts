@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+type VercelRequest={method?:string;body:any};
+type VercelResponse={status:(code:number)=>VercelResponse;json:(body:unknown)=>void};
 const ENDPOINT='https://dhruva-api.bhashini.gov.in/services/inference/pipeline';
 export default async function handler(req:VercelRequest,res:VercelResponse){
  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
