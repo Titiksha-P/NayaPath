@@ -111,6 +111,24 @@ The challenge-selection engine uses recent performance and hint-dependence signa
 
 This is a learning and exploration prototype—not a validated psychometric instrument, diagnosis, hiring test or guarantee of career suitability.
 
+## 🧭 Universal Livelihood Intelligence Engine
+
+The discovery flow now uses a shared, extensible opportunity catalogue rather than branching into a separate recommendation script for a few named occupations.
+
+A profile is assembled from the person's circumstances—current work and informal experience, goals, working hours, commute, days off, energy, contract status, skills, device access, location and exploration budget. The engine then:
+
+1. asks targeted follow-up questions when important information is missing;
+2. generates candidates across primary-income improvement, supplementary income, independent livelihood and capability development;
+3. applies hard feasibility checks for long hours, low energy, missing rest, limited digital access and contract restrictions;
+4. ranks remaining candidates using transparent relevance and feasibility signals; and
+5. explains the checks and a low-risk next step for each candidate.
+
+The starter catalogue is deliberately occupation-agnostic and can be extended with new opportunity records. Occupation and skills are used as relevance signals, not as a fixed destiny or a reason to exclude someone from exploring another field. Contract-sensitive outside work is held when approval is required or restrictions may apply. Unknown working hours do not count as spare time; unknown contract terms do not count as permission.
+
+**Important boundary:** the catalogue currently contains illustrative opportunity patterns, not live vacancies or verified local demand. It does not generate earnings estimates, guarantee eligibility, provide legal clearance or establish that a business will succeed. Local opportunity data, provider verification, broader accessibility review and native-language research are still required before real-world deployment.
+
+Automated tests include synthetic profiles across varied occupations and constraint combinations. These tests check engine invariants; they are not evidence that the catalogue covers every person's circumstances or that real-world recommendations are validated.
+
 ## 🛡️ A future should fit real life—and real finances
 
 Exploring a new livelihood should not put someone's existing stability at risk.
