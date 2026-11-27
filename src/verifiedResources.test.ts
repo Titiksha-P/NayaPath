@@ -14,7 +14,7 @@ describe('official livelihood resource directory',()=>{
   const out=matchVerifiedResources({occupation:'tailor',skills:'stitching',goal:'business',location:'Delhi'});
   expect(out.some(x=>x.id==='udyam')).toBe(true);
  });
- it('does not fabricate city-specific listings from a location string',()=>{
+ it('surfaces Delhi Employment Exchange only for Delhi profiles',()=>{\n  const delhi=matchVerifiedResources({occupation:'security guard',skills:'CCTV',goal:'better',location:'Delhi'});\n  const jaipur=matchVerifiedResources({occupation:'security guard',skills:'CCTV',goal:'better',location:'Jaipur'});\n  expect(delhi[0].id).toBe('delhi-employment');\n  expect(jaipur.some(x=>x.id==='delhi-employment')).toBe(false);\n });\n it('does not fabricate city-specific listings from a location string',()=>{
   const a=matchVerifiedResources({occupation:'student',skills:'',goal:'skills',location:'Delhi'});
   const b=matchVerifiedResources({occupation:'student',skills:'',goal:'skills',location:'Kochi'});
   expect(a.map(x=>x.id)).toEqual(b.map(x=>x.id));
