@@ -187,7 +187,7 @@ export default function VoiceOnboarding({onComplete}:Props){
     <section className="voice-transcript voice-original"><b>{listening?'You are saying':'What you said'} · {hasChosenLanguage?lang.name:'Detecting spoken language'}</b><p>{lastTranscript||'Your spoken words will appear here as they are recognized.'}</p></section>
     <section className="voice-transcript voice-english"><b>English meaning</b><p>{englishTranscript||(translationBusy?'Translating…':'Your English translation will appear here.')}</p>{translationStatus&&<small>{translationStatus}</small>}</section>
    </div>
-   {error&&phase!=='intro'&&<p className="voice-error" role="alert">{error}</p>}
+   {error&&<p className="voice-error" role="alert">{error}{phase==='intro'?' You can choose a language above to use browser speech recognition instead.':''}</p>}
    <div className="voice-actions">
     {hasChosenLanguage&&(needsTap||phase!=='done'&&phase!=='intro')&&<button className="voice-primary" onClick={begin}><Mic size={17}/> {error.includes('paused')?'Continue':'Enable microphone / Continue'}</button>}
     {phase!=='intro'&&phase!=='done'&&<button onClick={()=>speak(speechText(phase,index),true)}><Volume2 size={17}/> Repeat aloud</button>}
