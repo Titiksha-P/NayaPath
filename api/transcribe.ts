@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const { audioContent, mimeType, mode = "transcribe" } = req.body || {};
+  const { audioContent, mimeType, mode = "transcribe", includeTranslation = false } = req.body || {};
   if (typeof audioContent !== "string" || !audioContent.trim()) {
     return res.status(400).json({ error: "Provide a base64-encoded audioContent field." });
   }
@@ -80,8 +80,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(502).json({ error: "Sarvam returned an empty transcript." });
     }
 
+    let englishTranslation: string | null = null;
+    if (includeTranslation === true && mode === "transcribe") {
+      try {
+        const translated = await client.speechToText.transcribe({
+          file: {
+            data: audio,
+            filename,
+            contentType: normalizedMime,
+            contentLength: audio.length,
+          },
+          model: "saaras:v4",
+          mode: "translate",
+        });
+        englishTranslation = typeof translated.transcript === "string" ? translated.transcript.trim() : null;
+      } catch {
+        // Preserve the original-language transcript if optional translation fails.
+      }
+    }
+
     return res.status(200).json({
       transcript,
+      englishTranslation,
       language: result.language_code || null,
       requestId: result.request_id || null,
       provider: "Sarvam",
