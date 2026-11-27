@@ -302,45 +302,28 @@ Made with curiosity, care and the belief that everyone deserves room to grow. �
 
 </div>
 
+## 🎙️ Sarvam speech-to-text
 
-## Multilingual voice infrastructure (BHASHINI)
+NayaPath currently uses **Sarvam Saaras v4** for the initial recorded voice story. Audio is sent to a server-side API route; the Sarvam API key is never exposed to browser code.
 
-NayaPath includes server-side integration points for BHASHINI speech and language services:
+- `/api/transcribe` — server-side speech-to-text using the official `sarvamai` JavaScript SDK and `saaras:v4`.
+- Original-language transcript is preserved.
+- An optional English translation can be requested as a separate transcription mode.
+- The browser uses the device's Speech Synthesis API for spoken prompts when an appropriate voice is available.
 
-- `/api/translate` — Indic-language text translation to the internal English representation.
-- `/api/transcribe` — Indic speech-to-text endpoint for recorded audio.
-- `/api/synthesize` — Indic text-to-speech endpoint.
-- `src/languageService.ts` — 22-language registry, script hints, translation client and conservative numeric extraction.
+### Configure Sarvam
 
-The browser voice assistant currently uses the browser's SpeechRecognition API for live listening. It attempts BHASHINI translation after a recognized utterance and prefers BHASHINI TTS when configured, falling back to the device's speech synthesis. The original recognized text is retained for review; translated text is not treated as ground truth.
+1. Copy `.env.example` to `.env` and set `SARVAM_API_KEY`. The local `.env` file must never be committed.
+2. Add `SARVAM_API_KEY` to Vercel Project → Settings → Environment Variables for production and redeploy.
+3. To make a real local API test, provide a short audio file (up to 30 seconds) and run:
 
-### Required server environment variables
+```bash
+npm install
+npm run sarvam:stt -- ./sample.wav
+```
 
-Set these in Vercel Project → Settings → Environment Variables (never expose them in Vite/client variables):
+The smoke test requires a valid API key and real audio input. A successful API response has not been claimed until this test has actually run.
 
-- `BHASHINI_INFERENCE_API_KEY` — inference key issued by BHASHINI.
-- `BHASHINI_NMT_SERVICE_ID` — approved translation model service ID.
-- `BHASHINI_ASR_SERVICE_ID` — approved speech-recognition model service ID.
-- `BHASHINI_TTS_SERVICE_ID` — approved text-to-speech model service ID.
+### Current voice limitations
 
-BHASHINI access requires developer onboarding and credentials. Service IDs must be selected and tested for the exact language/task combinations in the BHASHINI model catalogue. A single service ID is not guaranteed to cover every scheduled language. Until the credentials and model IDs are configured, these API routes return a clear configuration error and the client uses browser speech where available.
-
-### Accuracy and accessibility safeguards
-
-No machine translation or speech-recognition system can promise perfect transcription or translation. NayaPath preserves the original utterance, labels translated interpretation as requiring review, and should ask the person to confirm consequential details (occupation, location, money, work hours, contractual restrictions) before using them. Script-based language detection is only a hint: Devanagari and Perso-Arabic scripts are shared by multiple languages, and code-switching needs audio/model-level detection rather than script guessing.
-
-**Not yet complete:** all 22 language packs are not yet professionally translated; full-page UI localization is not yet wired end-to-end; BHASHINI ASR is exposed as a server endpoint but the current live microphone flow still uses browser SpeechRecognition; confidence scores are not yet calibrated against a validation dataset. Do not describe the prototype as supporting verified, error-free voice interaction in all 22 languages until these are implemented and tested with native speakers.
-
-
-### Sarvam speech-to-text (first API integration)
-
-The first-story microphone recording is transcribed on the server with Sarvam Saaras v4. The API key is never sent to the browser.
-
-1. Copy `.env.example` to `.env` and set `SARVAM_API_KEY` locally. The `.env` file is ignored by Git.
-2. Put a short audio sample (30 seconds maximum) in the project folder.
-3. Run `npm install`, then `npm run sarvam:stt -- ./sample.wav` to test the real API.
-4. For production, add `SARVAM_API_KEY` in Vercel Project → Settings → Environment Variables, then redeploy.
-
-The `/api/transcribe` route uses the official `sarvamai` JavaScript SDK and `saaras:v4`. It returns the original-language transcript and can optionally request a separate English translation. The synchronous REST endpoint accepts audio up to 30 seconds. The smoke test requires a real audio file and a valid Sarvam API key; neither is committed to GitHub.
-
-The current follow-up conversation still uses browser SpeechRecognition. This first integration replaces the initial recorded-story transcription path; realtime streaming and full-turn Sarvam transcription are separate next steps.
+Sarvam is currently integrated for the initial recorded story, not yet for every follow-up turn or continuous live streaming. The follow-up microphone interaction still depends on browser speech recognition support. English translation is not currently wired into that browser follow-up path, and browser text-to-speech voice availability varies by device and language. Do not describe NayaPath as providing fully verified, error-free voice support in all 22 languages.
