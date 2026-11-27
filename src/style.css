@@ -58,3 +58,10 @@
  .voice-first.voice-only .voice-actions .voice-primary{grid-column:auto}
  .voice-first.voice-only .voice-foot{display:grid!important}
 }
+
+/* Keep voice status and language hint contained inside the circular indicator */
+.voice-first.voice-only .voice-orb{box-sizing:border-box;width:clamp(150px,18vw,184px);height:clamp(150px,18vw,184px);padding:18px;gap:8px;overflow:hidden;text-align:center}
+.voice-first.voice-only .voice-orb svg{flex:0 0 auto;display:block}
+.voice-first.voice-only .voice-orb b{display:block;width:100%;max-width:100%;font-size:12px;line-height:1.3;text-align:center;white-space:normal;overflow-wrap:anywhere}
+.voice-first.voice-only .voice-orb small{display:block;width:100%;max-width:100%;font-size:10px;line-height:1.35;text-align:center;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:560px){.voice-first.voice-only .voice-orb{width:150px;height:150px;padding:15px}}
