@@ -81,7 +81,7 @@ export default function VoiceOnboarding({onComplete}:Props){
   if(p==='literacy'){
    const canRead=/read|write|पढ़|लिख|ପଢ଼|ଲେଖ|পড়|লিখ|படி|எழுது|చదవ|రాయ|वाच|लिह|વાંચ|લખ/.test(t);
    const speakOnly=/only speak|speak only|सिर्फ बोल|केवल बोल|କେବଳ କହ|শুধু বল|பேச மட்டுமே|మాట్లాడటం మాత్రమే|फक्त बोल|ફક્ત બોલ/.test(t);
-   setVoiceOnly(!canRead||speakOnly);setPhase('questions');setIndex(0);speak((questions[loc]||questions['en-IN'])[0]);return;
+   setVoiceOnly(true);setPhase('questions');setIndex(0);speak((questions[loc]||questions['en-IN'])[0]);return;
   }
   if(p==='questions'){
    const patch:Partial<Values>={};
@@ -123,7 +123,7 @@ export default function VoiceOnboarding({onComplete}:Props){
   <div className="voice-console">
    <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>Speak naturally. The assistant listens after each spoken prompt.</small></div><label>YOUR LANGUAGE<select aria-label="Speech language" value={lang.locale} onChange={e=>changeLanguage(e.target.value)}>{languages.map(x=><option key={x.locale} value={x.locale}>{x.name}</option>)}</select></label></div>
    <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={40}/><b>{currentStatus}</b><small>{lang.name} · {lang.locale}</small></div>
-   {!voiceOnly&&phase!=='intro'&&<div className="voice-reading-mode"><b>Reading mode</b><span>Text is available because you said you can read and write. Voice guidance remains on.</span></div>}
+   {false&&<div className="voice-reading-mode"><b>Reading mode</b><span>Text is available because you said you can read and write. Voice guidance remains on.</span></div>}
    {phase==='intro'&&<div className="voice-prompt voice-prompt-primary"><small>FIRST, TELL YOUR STORY</small><p>{welcome[lang.locale]||welcome['en-IN']}</p></div>}
    {phase==='literacy'&&<div className="voice-prompt voice-prompt-primary"><small>ONE QUICK QUESTION</small><p>{literacy[lang.locale]||literacy['en-IN']}</p></div>}
    {phase==='questions'&&<div className="voice-prompt voice-prompt-primary"><small>QUESTION {index+1} OF 8</small><p>{(questions[lang.locale]||questions['en-IN'])[index]}</p></div>}
