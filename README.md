@@ -301,3 +301,32 @@ NayaPath is being built around a simple belief: **people deserve the space to di
 Made with curiosity, care and the belief that everyone deserves room to grow. 🌱
 
 </div>
+
+
+## Multilingual voice infrastructure (BHASHINI)
+
+NayaPath includes server-side integration points for BHASHINI speech and language services:
+
+- `/api/translate` — Indic-language text translation to the internal English representation.
+- `/api/transcribe` — Indic speech-to-text endpoint for recorded audio.
+- `/api/synthesize` — Indic text-to-speech endpoint.
+- `src/languageService.ts` — 22-language registry, script hints, translation client and conservative numeric extraction.
+
+The browser voice assistant currently uses the browser's SpeechRecognition API for live listening. It attempts BHASHINI translation after a recognized utterance and prefers BHASHINI TTS when configured, falling back to the device's speech synthesis. The original recognized text is retained for review; translated text is not treated as ground truth.
+
+### Required server environment variables
+
+Set these in Vercel Project → Settings → Environment Variables (never expose them in Vite/client variables):
+
+- `BHASHINI_INFERENCE_API_KEY` — inference key issued by BHASHINI.
+- `BHASHINI_NMT_SERVICE_ID` — approved translation model service ID.
+- `BHASHINI_ASR_SERVICE_ID` — approved speech-recognition model service ID.
+- `BHASHINI_TTS_SERVICE_ID` — approved text-to-speech model service ID.
+
+BHASHINI access requires developer onboarding and credentials. Service IDs must be selected and tested for the exact language/task combinations in the BHASHINI model catalogue. A single service ID is not guaranteed to cover every scheduled language. Until the credentials and model IDs are configured, these API routes return a clear configuration error and the client uses browser speech where available.
+
+### Accuracy and accessibility safeguards
+
+No machine translation or speech-recognition system can promise perfect transcription or translation. NayaPath preserves the original utterance, labels translated interpretation as requiring review, and should ask the person to confirm consequential details (occupation, location, money, work hours, contractual restrictions) before using them. Script-based language detection is only a hint: Devanagari and Perso-Arabic scripts are shared by multiple languages, and code-switching needs audio/model-level detection rather than script guessing.
+
+**Not yet complete:** all 22 language packs are not yet professionally translated; full-page UI localization is not yet wired end-to-end; BHASHINI ASR is exposed as a server endpoint but the current live microphone flow still uses browser SpeechRecognition; confidence scores are not yet calibrated against a validation dataset. Do not describe the prototype as supporting verified, error-free voice interaction in all 22 languages until these are implemented and tested with native speakers.
