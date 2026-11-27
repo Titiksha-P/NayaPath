@@ -22,7 +22,7 @@ export default function VoiceOnboarding({onComplete}:Props){
  const [listening,setListening]=useState(false);
  const [speaking,setSpeaking]=useState(false);
  const [transcript,setTranscript]=useState('');
- const [pending,setPending]=useState('');
+ const [pending,setPending]=useState('');\n const [awaitingConfirmation,setAwaitingConfirmation]=useState(false);
  const [values,setValues]=useState<Values>(initial);
  const [message,setMessage]=useState('Choose a supported language, then press Start. Voice support depends on the browser and device.');
  const [error,setError]=useState('');
@@ -40,7 +40,7 @@ export default function VoiceOnboarding({onComplete}:Props){
   rec.onstart=()=>{setListening(true);setMessage(confirmation?'Please say yes or no.':'Listening. Speak naturally in your selected language.');};
   rec.onerror=(e:any)=>{setListening(false);setError(e.error==='not-allowed'?'Microphone permission was denied. Allow microphone access and try again.':e.error==='language-not-supported'?'This browser does not support speech recognition for this language.':'I could not hear that clearly. Please try again.');};
   rec.onend=()=>setListening(false);
-  rec.onresult=(e:any)=>{const text=String(e.results?.[0]?.[0]?.transcript||'').trim();setTranscript(text);if(confirmation) handleConfirmation(text);else{setPending(text);say(prompt(9,text));setMessage('Please confirm what I heard.');}};
+  rec.onresult=(e:any)=>{const text=String(e.results?.[0]?.[0]?.transcript||'').trim();setTranscript(text);if(confirmation) handleConfirmation(text);else{setPending(text);setAwaitingConfirmation(true);say(prompt(9,text));setMessage('Please confirm what I heard.');}};
   try{rec.start();}catch{setListening(false);setError('The microphone could not start. Please try again.');}
  };
  const parse=(index:number,text:string):Partial<Values>=>{
@@ -57,23 +57,23 @@ export default function VoiceOnboarding({onComplete}:Props){
  };
  const handleConfirmation=(answer:string)=>{
   const t=answer.toLowerCase();const yes=lang.yes.some(x=>t.includes(x.toLowerCase()));const no=lang.no.some(x=>t.includes(x.toLowerCase()));
-  if(yes){const patch=parse(step,pending);const next={...valuesRef.current,...patch};setValues(next);valuesRef.current=next;setPending('');setMessage('Answer confirmed.');if(step>=8){onComplete(next,lang.locale);setStep(10);say(prompt(10));}else{const n=step+1;setStep(n);say(prompt(n));}}
-  else if(no){setPending('');setMessage('Let us try that question again.');say(prompt(step));}
-  else{setMessage('I could not identify yes or no. Please try again.');say(prompt(9,pending));}
+  if(yes){setAwaitingConfirmation(false);const patch=parse(step,pending);const next={...valuesRef.current,...patch};setValues(next);valuesRef.current=next;setPending('');setMessage('Answer confirmed.');if(step>=8){onComplete(next,lang.locale);setStep(10);say(prompt(10));}else{const n=step+1;setStep(n);say(prompt(n));}}
+  else if(no){setAwaitingConfirmation(false);setPending('');setMessage('Let us try that question again.');say(prompt(step));}
+  else{setAwaitingConfirmation(true);setMessage('I could not identify yes or no. Please try again.');say(prompt(9,pending));}
  };
- const begin=()=>{setValues(initial);valuesRef.current=initial;setStep(0);setTranscript('');setPending('');setMessage('Welcome.');say(prompt(0));};
- const skip=()=>{setPending('');if(step>=8){onComplete(valuesRef.current,lang.locale);setStep(10);say(prompt(10));return;}const n=step+1;setStep(n);say(prompt(n));};
+ const begin=()=>{setValues(initial);valuesRef.current=initial;setAwaitingConfirmation(false);setStep(0);setTranscript('');setPending('');setMessage('Welcome.');say(prompt(0));};
+ const skip=()=>{setPending('');setAwaitingConfirmation(false);if(step>=8){onComplete(valuesRef.current,lang.locale);setStep(10);say(prompt(10));return;}const n=step+1;setStep(n);say(prompt(n));};
  const stop=()=>{recognition.current?.stop?.();setListening(false);stopSpeech();setMessage('Paused. Resume when you are ready.');};
  return <section className="voice-onboarding" id="voice-start">
   <div className="voice-intro"><span>VOICE-FIRST ONBOARDING</span><h2>Start with your <i>own voice.</i></h2><p>Choose a language and answer one spoken question at a time. You do not need to type. Your answers are confirmed before they are added to your profile.</p></div>
   <div className="voice-console">
    <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>On-device browser speech · no audio upload by this interface</small></div><label>LANGUAGE<select value={lang.name} onChange={e=>{const selected=supported.find(x=>x.name===e.target.value)!;setLang(selected);stop();setStep(-1);setMessage('Language changed. Press Start to begin again.');}}>{supported.map(x=><option key={x.name} value={x.name}>{x.name}</option>)}</select></label></div>
    <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={38}/><b>{listening?'Listening…':speaking?'Speaking…':step===10?'Conversation complete':step<0?'Ready when you are':'Your turn to speak'}</b><small>{lang.name} · {lang.locale}</small></div>
-   <div className="voice-prompt"><small>{step>=1&&step<=8?labels[step]:'ASSISTANT'}</small><p>{step>=0&&step<=10?prompt(step, pending):message}</p>{transcript&&<div className="voice-transcript"><b>Recognised speech</b><p>{transcript}</p></div>}</div>
+   <div className="voice-prompt"><small>{awaitingConfirmation?'PLEASE CONFIRM':step>=1&&step<=8?labels[step]:'ASSISTANT'}</small><p>{awaitingConfirmation?prompt(9,pending):step>=0&&step<=10?prompt(step, pending):message}</p>{transcript&&<div className="voice-transcript"><b>Recognised speech</b><p>{transcript}</p></div>}</div>
    {error&&<p className="voice-error" role="alert">{error}</p>}
    <div className="voice-actions">
     {step<0||step===10?<button className="voice-primary" onClick={begin}><Play size={17}/> {step===10?'Start again':'Start voice conversation'}</button>:<>
-      <button className="voice-primary" onClick={()=>startListening(step===9)} disabled={listening||speaking}><Mic size={17}/> {step===9?'Confirm answer':'Speak answer'}</button>
+      <button className="voice-primary" onClick={()=>startListening(awaitingConfirmation)} disabled={listening||speaking}><Mic size={17}/> {awaitingConfirmation?'Confirm answer':'Speak answer'}</button>
       <button onClick={skip}>Skip <ChevronRight size={16}/></button>
       <button onClick={stop}><Pause size={16}/> Pause</button>
     </>}
