@@ -76,7 +76,7 @@ Try something unfamiliar, reflect on the experience and discover what feels wort
 
 Voice should be more than a microphone icon beside a form. It should make the experience feel natural and approachable.
 
-NayaPath's discovery flow includes browser-based speech input where supported, alongside ordinary typing and touch controls. The current prototype wires English and Hindi speech recognition through the browser; actual availability depends on the browser and device. Other language options are not represented as fully implemented speech support yet.
+NayaPath's discovery flow includes browser-based speech input where supported, alongside ordinary typing and touch controls. The discovery screen now offers a language selector for all 22 languages listed in the Eighth Schedule of the Indian Constitution, plus English, and passes the selected locale to the browser Speech Recognition API. Actual recognition support and quality vary by browser, operating system and language; unsupported locales must fall back to typing. The interface copy is currently English, so this is not yet a fully translated 22-language experience. Translation, native-speaker review and device-by-device speech testing remain required.
 
 We want the experience to grow towards multilingual, conversational guidance—with clear consent, visible transcription and a reliable text alternative.
 
@@ -225,7 +225,7 @@ NayaPath is an **active prototype**, and we want to be transparent about what is
 | Area | Current state |
 |---|---|
 | Responsive discovery experience | Prototype implemented |
-| Browser speech input | English/Hindi browser integration; device-dependent |
+| Language selection | 22 Eighth Schedule languages plus English; browser locale request, support varies |
 | Adaptive challenge selection | Initial evidence-based engine implemented |
 | Attempts, hints and response time | Captured in the assessment |
 | Practical mini-project and reflection | Prototype implemented |
@@ -233,7 +233,7 @@ NayaPath is an **active prototype**, and we want to be transparent about what is
 | Financial readiness | Conservative review; financial integration incomplete |
 | Accounts and cloud sync | Not implemented; progress is browser-local |
 | Curated local opportunities | Needs sourced content and provenance |
-| Full multilingual voice experience | Future development |
+| Full multilingual interface and verified speech quality | Future development; translations and testing not yet complete |
 
 The project still needs a verified production build, broader automated and accessibility testing, more diverse livelihood scenarios, secure financial-data handling and independent evaluation for fairness and reliability. The challenge bank is illustrative and should not be used to make real employment or financial decisions.
 
