@@ -330,3 +330,17 @@ BHASHINI access requires developer onboarding and credentials. Service IDs must 
 No machine translation or speech-recognition system can promise perfect transcription or translation. NayaPath preserves the original utterance, labels translated interpretation as requiring review, and should ask the person to confirm consequential details (occupation, location, money, work hours, contractual restrictions) before using them. Script-based language detection is only a hint: Devanagari and Perso-Arabic scripts are shared by multiple languages, and code-switching needs audio/model-level detection rather than script guessing.
 
 **Not yet complete:** all 22 language packs are not yet professionally translated; full-page UI localization is not yet wired end-to-end; BHASHINI ASR is exposed as a server endpoint but the current live microphone flow still uses browser SpeechRecognition; confidence scores are not yet calibrated against a validation dataset. Do not describe the prototype as supporting verified, error-free voice interaction in all 22 languages until these are implemented and tested with native speakers.
+
+
+### Sarvam speech-to-text (first API integration)
+
+The first-story microphone recording is transcribed on the server with Sarvam Saaras v4. The API key is never sent to the browser.
+
+1. Copy `.env.example` to `.env` and set `SARVAM_API_KEY` locally. The `.env` file is ignored by Git.
+2. Put a short audio sample (30 seconds maximum) in the project folder.
+3. Run `npm install`, then `npm run sarvam:stt -- ./sample.wav` to test the real API.
+4. For production, add `SARVAM_API_KEY` in Vercel Project → Settings → Environment Variables, then redeploy.
+
+The `/api/transcribe` route uses the official `sarvamai` JavaScript SDK and `saaras:v4`. It returns the original-language transcript and can optionally request a separate English translation. The synchronous REST endpoint accepts audio up to 30 seconds. The smoke test requires a real audio file and a valid Sarvam API key; neither is committed to GitHub.
+
+The current follow-up conversation still uses browser SpeechRecognition. This first integration replaces the initial recorded-story transcription path; realtime streaming and full-turn Sarvam transcription are separate next steps.
