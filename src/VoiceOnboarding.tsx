@@ -48,6 +48,8 @@ export default function VoiceOnboarding({onComplete}:Props){
  const [error,setError]=useState('');
  const [translationStatus,setTranslationStatus]=useState('');
  const [lastTranscript,setLastTranscript]=useState('');
+ const [englishTranscript,setEnglishTranscript]=useState('');
+ const [translationBusy,setTranslationBusy]=useState(false);
  const [voiceOnly,setVoiceOnly]=useState(true);
  const [values,setValues]=useState<Values>(empty);
  const [story,setStory]=useState('');
@@ -127,9 +129,9 @@ export default function VoiceOnboarding({onComplete}:Props){
   const SR=(window as any).SpeechRecognition||(window as any).webkitSpeechRecognition;
   if(!SR){setError('This browser does not support speech recognition. Try an up-to-date Chrome browser.');setNeedsTap(true);return;}
   try{
-   const rec=new SR();recognition.current=rec;rec.lang=langRef.current.locale;rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=3;
+   const rec=new SR();recognition.current=rec;rec.lang=langRef.current.locale;rec.continuous=false;rec.interimResults=true;rec.maxAlternatives=3;
    rec.onstart=()=>{busy.current=true;setListening(true);setError('');setNeedsTap(false);};
-   rec.onresult=async(e:any)=>{const spoken=String(e.results?.[0]?.[0]?.transcript||'').trim();if(!spoken)return;setLastTranscript(spoken);setTranslationStatus('');const code=languages.find(x=>x.locale===langRef.current.locale)?.code||'en';if(code==='en'){applyAnswer(spoken);return;}try{setTranslationStatus('Checking meaning…');const result=await translateText(spoken,code,'en');setTranslationStatus('Translated for internal understanding. Please correct anything that sounds wrong.');applyAnswer(result.translated);}catch{setTranslationStatus('Translation service is not configured or unavailable. The original speech is retained; interpretation may be incomplete.');applyAnswer(spoken);}};
+   rec.onresult=async(e:any)=>{let finalText='';let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const part=String(e.results[i]?.[0]?.transcript||'').trim();if(e.results[i].isFinal)finalText+=part+' ';else interim+=part+' ';}if(interim)setLastTranscript(interim.trim());if(!finalText.trim())return;const spoken=finalText.trim();setLastTranscript(spoken);setTranslationStatus('');const code=languages.find(x=>x.locale===langRef.current.locale)?.code||'en';if(code==='en'){setEnglishTranscript(spoken);applyAnswer(spoken);return;}setTranslationBusy(true);setTranslationStatus('Translating your words…');try{const result=await translateText(spoken,code,'en');setEnglishTranscript(result.translated);setTranslationStatus('English translation — check meaning if anything seems incorrect.');applyAnswer(result.translated);}catch{setEnglishTranscript('Translation is unavailable. Your original words are preserved.');setTranslationStatus('Could not translate this response. Please try again or continue only after confirming its meaning.');}finally{setTranslationBusy(false);}};
    rec.onerror=(e:any)=>{setError(e.error==='not-allowed'?'Allow microphone access once to start the conversation.':e.error==='language-not-supported'?'Speech recognition for this language is not supported by this browser. Choose another available speech language.':'I could not hear that clearly. I will listen again.');if(e.error==='not-allowed'||e.error==='service-not-allowed'){setNeedsTap(true);active.current=false;}};
    rec.onend=()=>{busy.current=false;setListening(false);if(active.current&&phaseRef.current!=='done'&&!window.speechSynthesis?.speaking&&!needsTap)setTimeout(()=>startRef.current?.(),450);};
    rec.start();
@@ -155,9 +157,9 @@ export default function VoiceOnboarding({onComplete}:Props){
       const raw=String(data.language||'').toLowerCase();const detected=languages.find(x=>x.code===raw||x.locale.toLowerCase()===raw||x.locale.toLowerCase().startsWith(raw+'-'));
       if(!detected)throw new Error('I heard your voice, but could not confidently identify its language. Please choose it from the language list.');
       if(cancelled)return;
-      setLang(detected);langRef.current=detected;setHasChosenLanguage(true);setLastTranscript(data.transcript);setNeedsTap(false);setError('');
+      setLang(detected);langRef.current=detected;setHasChosenLanguage(true);setLastTranscript(data.transcript);setEnglishTranscript('');setNeedsTap(false);setError('');
       let understood=data.transcript;
-      if(detected.code!=='en'){try{const translated=await translateText(data.transcript,detected.code,'en');understood=translated.translated;setTranslationStatus('Your speech was transcribed and translated for internal understanding.');}catch{setTranslationStatus('Translation is unavailable. Your original speech is preserved; please verify the meaning before continuing.');}}
+      if(detected.code!=='en'){try{setTranslationBusy(true);const translated=await translateText(data.transcript,detected.code,'en');understood=translated.translated;setEnglishTranscript(translated.translated);setTranslationStatus('English translation — check meaning if anything seems incorrect.');}catch{setEnglishTranscript('Translation unavailable; original speech retained.');setTranslationStatus('Translation is unavailable. Please confirm the meaning before continuing.');}finally{setTranslationBusy(false);}}else{setEnglishTranscript(data.transcript);setTranslationStatus('English speech recognized.');}
       if(cancelled)return;
       applyAnswer(understood);
      }catch(err){if(!cancelled){setError(err instanceof Error?err.message:'Could not understand the first recording. Choose your language and try again.');setNeedsTap(true);}}
@@ -181,7 +183,10 @@ export default function VoiceOnboarding({onComplete}:Props){
    {phase==='literacy'&&<div className="voice-prompt voice-prompt-primary"><small>ONE QUICK QUESTION</small><p>{literacy[lang.locale]||literacy['en-IN']}</p></div>}
    {phase==='questions'&&<div className="voice-prompt voice-prompt-primary"><small>QUESTION {index+1} OF 8</small><p>{(questions[lang.locale]||questions['en-IN'])[index]}</p></div>}
    {phase==='done'&&<div className="voice-prompt voice-prompt-primary"><small>THANK YOU</small><p>Your answers have been added to your NayaPath profile. The assistant has finished this first conversation.</p></div>}
-   {phase!=='intro'&&lastTranscript&&<div className="voice-transcript"><b>What I heard</b><p>{lastTranscript}</p>{translationStatus&&<small>{translationStatus}</small>}</div>}
+   <div className="voice-live-transcripts" aria-live="polite">
+    <section className="voice-transcript voice-original"><b>{listening?'You are saying':'What you said'} · {hasChosenLanguage?lang.name:'Detecting spoken language'}</b><p>{lastTranscript||'Your spoken words will appear here as they are recognized.'}</p></section>
+    <section className="voice-transcript voice-english"><b>English meaning</b><p>{englishTranscript||(translationBusy?'Translating…':'Your English translation will appear here.')}</p>{translationStatus&&<small>{translationStatus}</small>}</section>
+   </div>
    {error&&phase!=='intro'&&<p className="voice-error" role="alert">{error}</p>}
    <div className="voice-actions">
     {hasChosenLanguage&&(needsTap||phase!=='done'&&phase!=='intro')&&<button className="voice-primary" onClick={begin}><Mic size={17}/> {error.includes('paused')?'Continue':'Enable microphone / Continue'}</button>}
