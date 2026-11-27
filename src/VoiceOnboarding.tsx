@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AudioLines, Mic, Volume2 } from 'lucide-react';
+import { INDIC_LANGUAGES, translateText } from './languageService';
 
-type Language={name:string;locale:string};
-const languages:Language[]=[
- {name:'Assamese',locale:'as-IN'},{name:'Bengali',locale:'bn-IN'},{name:'Bodo',locale:'brx-IN'},{name:'Dogri',locale:'doi-IN'},{name:'English',locale:'en-IN'},{name:'Gujarati',locale:'gu-IN'},{name:'Hindi',locale:'hi-IN'},{name:'Kannada',locale:'kn-IN'},{name:'Kashmiri',locale:'ks-IN'},{name:'Konkani',locale:'kok-IN'},{name:'Maithili',locale:'mai-IN'},{name:'Malayalam',locale:'ml-IN'},{name:'Manipuri (Meitei)',locale:'mni-IN'},{name:'Marathi',locale:'mr-IN'},{name:'Nepali',locale:'ne-IN'},{name:'Odia',locale:'or-IN'},{name:'Punjabi',locale:'pa-IN'},{name:'Sanskrit',locale:'sa-IN'},{name:'Santali',locale:'sat-IN'},{name:'Sindhi',locale:'sd-IN'},{name:'Tamil',locale:'ta-IN'},{name:'Telugu',locale:'te-IN'},{name:'Urdu',locale:'ur-IN'}
-];
+type Language={name:string;locale:string;code:string};
+const languages=INDIC_LANGUAGES;
 type Values={occupation:string;goal:string;hours:string;daysOff:string;energy:string;skills:string;location:string;contract:string};
 const empty:Values={occupation:'',goal:'extra',hours:'',daysOff:'',energy:'',skills:'',location:'',contract:'unknown'};
 const welcome:Record<string,string>={
@@ -47,6 +46,8 @@ export default function VoiceOnboarding({onComplete}:Props){
  const [speaking,setSpeaking]=useState(false);
  const [needsTap,setNeedsTap]=useState(false);
  const [error,setError]=useState('');
+ const [translationStatus,setTranslationStatus]=useState('');
+ const [lastTranscript,setLastTranscript]=useState('');
  const [voiceOnly,setVoiceOnly]=useState(true);
  const [values,setValues]=useState<Values>(empty);
  const [story,setStory]=useState('');
@@ -106,7 +107,7 @@ export default function VoiceOnboarding({onComplete}:Props){
   try{
    const rec=new SR();recognition.current=rec;rec.lang=langRef.current.locale;rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=3;
    rec.onstart=()=>{busy.current=true;setListening(true);setError('');setNeedsTap(false);};
-   rec.onresult=(e:any)=>{const spoken=String(e.results?.[0]?.[0]?.transcript||'').trim();if(spoken)applyAnswer(spoken);};
+   rec.onresult=async(e:any)=>{const spoken=String(e.results?.[0]?.[0]?.transcript||'').trim();if(!spoken)return;setLastTranscript(spoken);setTranslationStatus('');const code=languages.find(x=>x.locale===langRef.current.locale)?.code||'en';if(code==='en'){applyAnswer(spoken);return;}try{setTranslationStatus('Checking meaning…');const result=await translateText(spoken,code,'en');setTranslationStatus('Translated for internal understanding. Please correct anything that sounds wrong.');applyAnswer(result.translated);}catch{setTranslationStatus('Translation service is not configured or unavailable. The original speech is retained; interpretation may be incomplete.');applyAnswer(spoken);}};
    rec.onerror=(e:any)=>{setError(e.error==='not-allowed'?'Allow microphone access once to start the conversation.':e.error==='language-not-supported'?'Speech recognition for this language is not supported by this browser. Choose another available speech language.':'I could not hear that clearly. I will listen again.');if(e.error==='not-allowed'||e.error==='service-not-allowed'){setNeedsTap(true);active.current=false;}};
    rec.onend=()=>{busy.current=false;setListening(false);if(active.current&&phaseRef.current!=='done'&&!window.speechSynthesis?.speaking&&!needsTap)setTimeout(()=>startRef.current?.(),450);};
    rec.start();
@@ -127,6 +128,7 @@ export default function VoiceOnboarding({onComplete}:Props){
    {phase==='literacy'&&<div className="voice-prompt voice-prompt-primary"><small>ONE QUICK QUESTION</small><p>{literacy[lang.locale]||literacy['en-IN']}</p></div>}
    {phase==='questions'&&<div className="voice-prompt voice-prompt-primary"><small>QUESTION {index+1} OF 8</small><p>{(questions[lang.locale]||questions['en-IN'])[index]}</p></div>}
    {phase==='done'&&<div className="voice-prompt voice-prompt-primary"><small>THANK YOU</small><p>Your answers have been added to your NayaPath profile. The assistant has finished this first conversation.</p></div>}
+   {lastTranscript&&<div className="voice-transcript"><b>What I heard</b><p>{lastTranscript}</p>{translationStatus&&<small>{translationStatus}</small>}</div>}
    {error&&<p className="voice-error" role="alert">{error}</p>}
    <div className="voice-actions">
     {needsTap&&phase!=='done'&&<button className="voice-primary" onClick={begin}><Mic size={17}/> {error.includes('paused')?'Continue':'Enable microphone / Continue'}</button>}
