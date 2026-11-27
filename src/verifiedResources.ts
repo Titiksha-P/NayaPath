@@ -1,7 +1,7 @@
 export type ResourceKind = 'jobs' | 'training' | 'agriculture-advisory' | 'market-access' | 'enterprise-information';
 export type VerifiedResource = {
  id:string; name:string; kind:ResourceKind; summary:string; audience:string[]; pathways:string[];
- geography:'India-wide'; localityNote:string; url:string; authority:string; evidence:string;
+ geography:'India-wide'|'Delhi'; localityNote:string; url:string; authority:string; evidence:string;
  verifiedOn:string; freshness:'directory'|'scheme-information'; cautions:string[];
 };
 export const VERIFIED_RESOURCES:VerifiedResource[] = [
