@@ -146,16 +146,16 @@ export default function VoiceOnboarding({onComplete}:Props){
   <div className="voice-console">
    <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>Speak naturally. The assistant listens after each spoken prompt.</small></div><label>YOUR LANGUAGE<select aria-label="Speech language" value={lang.locale} onChange={e=>changeLanguage(e.target.value)}>{languages.map(x=><option key={x.locale} value={x.locale}>{x.name}</option>)}</select></label></div>
    <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={40}/><b>{currentStatus}</b><small>{lang.name} · {lang.locale}</small></div>
-   {phase==='intro'&&<div className="voice-prompt voice-prompt-primary"><small>FIRST, TELL YOUR STORY</small><p>{welcome[lang.locale]||welcome['en-IN']}</p></div>}
+   {phase==='intro'&&null}
    {phase==='literacy'&&<div className="voice-prompt voice-prompt-primary"><small>ONE QUICK QUESTION</small><p>{literacy[lang.locale]||literacy['en-IN']}</p></div>}
    {phase==='questions'&&<div className="voice-prompt voice-prompt-primary"><small>QUESTION {index+1} OF 8</small><p>{(questions[lang.locale]||questions['en-IN'])[index]}</p></div>}
    {phase==='done'&&<div className="voice-prompt voice-prompt-primary"><small>THANK YOU</small><p>Your answers have been added to your NayaPath profile. The assistant has finished this first conversation.</p></div>}
-   {lastTranscript&&<div className="voice-transcript"><b>What I heard</b><p>{lastTranscript}</p>{translationStatus&&<small>{translationStatus}</small>}</div>}
-   {error&&<p className="voice-error" role="alert">{error}</p>}
+   {phase!=='intro'&&lastTranscript&&<div className="voice-transcript"><b>What I heard</b><p>{lastTranscript}</p>{translationStatus&&<small>{translationStatus}</small>}</div>}
+   {error&&phase!=='intro'&&<p className="voice-error" role="alert">{error}</p>}
    <div className="voice-actions">
-    {needsTap&&phase!=='done'&&<button className="voice-primary" onClick={begin}><Mic size={17}/> {error.includes('paused')?'Continue':'Enable microphone / Continue'}</button>}
-    {phase!=='done'&&<button onClick={()=>speak(speechText(phase,index),true)}><Volume2 size={17}/> Repeat aloud</button>}
-    {phase!=='done'&&<button onClick={stop}>Pause conversation</button>}
+    {(needsTap&&phase!=='done'||phase==='intro')&&<button className="voice-primary" onClick={begin}><Mic size={17}/> {phase==='intro'?'Start speaking':error.includes('paused')?'Continue':'Enable microphone / Continue'}</button>}
+    {phase!=='intro'&&phase!=='done'&&<button onClick={()=>speak(speechText(phase,index),true)}><Volume2 size={17}/> Repeat aloud</button>}
+    {phase!=='intro'&&phase!=='done'&&<button onClick={stop}>Pause conversation</button>}
    </div>
    <div className="voice-foot"><span>{phase==='intro'?'Tell your story first':phase==='literacy'?'Speaking and reading preference':phase==='questions'?'Guided conversation · '+(index+1)+'/8':'Your conversation is complete'}</span><span>{voiceOnly?'Voice-first mode':'Voice + reading mode'}</span></div>
   </div>
