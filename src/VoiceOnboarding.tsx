@@ -38,8 +38,8 @@ const questions:Record<string,string[]> = {
 };
 type Props={onComplete:(values:Values,locale:string)=>void};
 export default function VoiceOnboarding({onComplete}:Props){
- const browserLocale=typeof navigator!=='undefined'?navigator.language:'en-IN';
- const [lang,setLang]=useState<Language>(()=>languages.find(x=>x.locale.toLowerCase()===browserLocale.toLowerCase())||languages.find(x=>x.locale===browserLocale.split('-')[0]+'-IN')||languages.find(x=>x.locale==='en-IN')!);
+ const [lang,setLang]=useState<Language>(()=>languages.find(x=>x.locale==='en-IN')!);
+ const [hasChosenLanguage,setHasChosenLanguage]=useState(false);
  const [phase,setPhase]=useState<'intro'|'story'|'literacy'|'questions'|'done'>('intro');
  const [index,setIndex]=useState(0);
  const [listening,setListening]=useState(false);
@@ -137,15 +137,15 @@ export default function VoiceOnboarding({onComplete}:Props){
  },[]);
  startRef.current=startListening;
  const begin=useCallback(()=>{setNeedsTap(false);setError('');active.current=true;if(phaseRef.current==='intro')speak(welcome[langRef.current.locale]||welcome['en-IN']);else startListening();},[speak,startListening]);
- useEffect(()=>{active.current=true;const id=window.setTimeout(()=>begin(),350);return()=>{active.current=false;window.clearTimeout(id);recognition.current?.stop?.();window.speechSynthesis?.cancel?.();audioRef.current?.pause();};},[]);
- const changeLanguage=(locale:string)=>{const selected=languages.find(x=>x.locale===locale);if(!selected)return;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setLang(selected);langRef.current=selected;setError('');setNeedsTap(false);if(phaseRef.current==='intro'){speak(welcome[locale]||welcome['en-IN']);}else{setError('Language changed. Please continue speaking in the selected language.');speak(speechText(phaseRef.current,indexRef.current));}};
+ useEffect(()=>{active.current=false;return()=>{active.current=false;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();audioRef.current?.pause();};},[]);
+ const changeLanguage=(locale:string)=>{const selected=languages.find(x=>x.locale===locale);if(!selected)return;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setLang(selected);langRef.current=selected;setHasChosenLanguage(true);setError('');setNeedsTap(false);active.current=true;if(phaseRef.current==='intro'){speak(welcome[locale]||welcome['en-IN']);}else{setError('Language changed. Please continue speaking in the selected language.');speak(speechText(phaseRef.current,indexRef.current));}};
  const stop=()=>{active.current=false;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setListening(false);setSpeaking(false);setNeedsTap(true);setError('Conversation paused. Tap Continue when you are ready.');};
- const currentStatus=listening?'Listening — speak naturally':speaking?'Speaking to you':needsTap?'Microphone needs one tap':phase==='done'?'Conversation complete':'Ready';
+ const currentStatus=!hasChosenLanguage?'Choose your language':listening?'Listening — speak naturally':speaking?'Speaking to you':needsTap?'Microphone needs one tap':phase==='done'?'Conversation complete':'Ready';
  return <section className={'voice-onboarding voice-first '+(voiceOnly?'voice-only':'')} id="voice-start" aria-label="NayaPath voice assistant">
   <div className="voice-intro"><span>YOUR VOICE COMES FIRST</span><h2>Tell me what is <i>happening.</i></h2><p>You do not need to fill out a form. Just tell NayaPath what you need. The assistant will guide you by voice.</p></div>
   <div className="voice-console">
    <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>Speak naturally. The assistant listens after each spoken prompt.</small></div><label>YOUR LANGUAGE<select aria-label="Speech language" value={lang.locale} onChange={e=>changeLanguage(e.target.value)}>{languages.map(x=><option key={x.locale} value={x.locale}>{x.name}</option>)}</select></label></div>
-   <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={40}/><b>{currentStatus}</b><small>{lang.name} · {lang.locale}</small></div>
+   <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={40}/><b>{currentStatus}</b><small>{hasChosenLanguage?lang.name+' · '+lang.locale:'Select a language to begin'}</small></div>
    {phase==='intro'&&null}
    {phase==='literacy'&&<div className="voice-prompt voice-prompt-primary"><small>ONE QUICK QUESTION</small><p>{literacy[lang.locale]||literacy['en-IN']}</p></div>}
    {phase==='questions'&&<div className="voice-prompt voice-prompt-primary"><small>QUESTION {index+1} OF 8</small><p>{(questions[lang.locale]||questions['en-IN'])[index]}</p></div>}
@@ -153,7 +153,7 @@ export default function VoiceOnboarding({onComplete}:Props){
    {phase!=='intro'&&lastTranscript&&<div className="voice-transcript"><b>What I heard</b><p>{lastTranscript}</p>{translationStatus&&<small>{translationStatus}</small>}</div>}
    {error&&phase!=='intro'&&<p className="voice-error" role="alert">{error}</p>}
    <div className="voice-actions">
-    {(needsTap&&phase!=='done'||phase==='intro')&&<button className="voice-primary" onClick={begin}><Mic size={17}/> {phase==='intro'?'Start speaking':error.includes('paused')?'Continue':'Enable microphone / Continue'}</button>}
+    {hasChosenLanguage&&(needsTap||phase!=='done'&&phase!=='intro')&&<button className="voice-primary" onClick={begin}><Mic size={17}/> {error.includes('paused')?'Continue':'Enable microphone / Continue'}</button>}
     {phase!=='intro'&&phase!=='done'&&<button onClick={()=>speak(speechText(phase,index),true)}><Volume2 size={17}/> Repeat aloud</button>}
     {phase!=='intro'&&phase!=='done'&&<button onClick={stop}>Pause conversation</button>}
    </div>
