@@ -1,86 +1,138 @@
-import { useEffect, useRef, useState } from 'react';
-import { AudioLines, Check, ChevronRight, Mic, MicOff, Pause, Play, RotateCcw, Volume2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AudioLines, Mic, Volume2 } from 'lucide-react';
 
-type Lang = { name:string; locale:string; prompts:string[]; yes:string[]; no:string[] };
-const supported:Lang[] = [
- {name:'English',locale:'en-IN',yes:['yes','yeah','correct','right'],no:['no','wrong','incorrect'],prompts:['Welcome to NayaPath. We will talk one step at a time. You can say skip whenever you do not want to answer.','What work do you currently do?','What would you like help with: better income in your current work, additional income, starting a business, or learning skills for a different opportunity?','About how many hours do you usually work each day?','How many days off do you usually have each week?','After work, do you usually feel energetic, a little tired, or exhausted and in need of rest?','Tell me about the skills and tasks you know from work or daily life.','Which city or district do you live or work in?','Does your employer or work agreement require permission for outside work, or restrict it? Say yes, no, or not sure.','I heard: {answer}. Is that correct? Say yes or no.','Thank you. I have saved the answers you confirmed. You can review your opportunity map now.']},
- {name:'Hindi',locale:'hi-IN',yes:['हाँ','हां','जी','सही','ठीक','हाँ सही'],no:['नहीं','गलत'],prompts:['नमस्ते! NayaPath में आपका स्वागत है। हम एक-एक सवाल पूछेंगे। किसी सवाल का जवाब नहीं देना हो तो आप छोड़ सकते हैं।','आप अभी कौन सा काम करते हैं?','आप क्या चाहते हैं: मौजूदा काम में बेहतर कमाई, अतिरिक्त कमाई, अपना व्यवसाय शुरू करना, या नए कौशल सीखना?','आप आमतौर पर रोज़ कितने घंटे काम करते हैं?','आपको हफ्ते में कितने दिन छुट्टी मिलती है?','काम के बाद आप कैसा महसूस करते हैं: ऊर्जा रहती है, थोड़ी थकान होती है, या बहुत थक जाते हैं?','आप अपने काम या रोज़मर्रा के जीवन में कौन-कौन से काम और कौशल जानते हैं?','आप किस शहर या ज़िले में रहते या काम करते हैं?','क्या बाहर का काम करने के लिए आपके मालिक की अनुमति ज़रूरी है, या कोई रोक है? हाँ, नहीं या पता नहीं कहें।','मैंने सुना: {answer}। क्या यह सही है? हाँ या नहीं कहें।','धन्यवाद। आपके बताए और पुष्टि किए गए जवाब सुरक्षित कर लिए हैं। अब आप अपने अवसर देख सकते हैं।']},
- {name:'Odia',locale:'or-IN',yes:['ହଁ','ହଁ ଠିକ୍','ଠିକ୍','ସଠିକ୍'],no:['ନା','ନାହିଁ','ଭୁଲ'],prompts:['ନମସ୍କାର! NayaPath କୁ ସ୍ୱାଗତ। ଆମେ ଗୋଟିଏ ପରେ ଗୋଟିଏ ପ୍ରଶ୍ନ ପଚାରିବୁ। ଉତ୍ତର ଦେବାକୁ ଇଚ୍ଛା ନଥିଲେ ଛାଡ଼ିପାରିବେ।','ଆପଣ ବର୍ତ୍ତମାନ କେଉଁ କାମ କରୁଛନ୍ତି?','ଆପଣ କଣ ଚାହୁଁଛନ୍ତି: ବର୍ତ୍ତମାନ କାମରେ ଅଧିକ ଆୟ, ଅତିରିକ୍ତ ଆୟ, ନିଜ ବ୍ୟବସାୟ, ନା ନୂଆ କୌଶଳ ଶିଖିବା?','ଆପଣ ସାଧାରଣତଃ ପ୍ରତିଦିନ କେତେ ଘଣ୍ଟା କାମ କରନ୍ତି?','ସପ୍ତାହରେ ସାଧାରଣତଃ କେତେ ଦିନ ଛୁଟି ମିଳେ?','କାମ ପରେ ଆପଣଙ୍କୁ କେମିତି ଲାଗେ: ଶକ୍ତି ରହେ, ଟିକେ ଥକା ଲାଗେ, ନା ବହୁତ ଥକିଯାଆନ୍ତି?','ଆପଣଙ୍କ କାମ କିମ୍ବା ଦୈନନ୍ଦିନ ଜୀବନରେ କେଉଁ କୌଶଳ ଓ କାମ ଜାଣିଛନ୍ତି?','ଆପଣ କେଉଁ ସହର କିମ୍ବା ଜିଲ୍ଲାରେ ରୁହନ୍ତି କିମ୍ବା କାମ କରନ୍ତି?','ଅନ୍ୟ କାମ କରିବାକୁ ମାଲିକଙ୍କ ଅନୁମତି ଦରକାର କିମ୍ବା କୌଣସି ନିୟମରେ ମନା ଅଛି କି? ହଁ, ନା କିମ୍ବା ଜାଣିନାହିଁ କୁହନ୍ତୁ।','ମୁଁ ଶୁଣିଲି: {answer}। ଏହା ଠିକ୍ କି? ହଁ କିମ୍ବା ନା କୁହନ୍ତୁ।','ଧନ୍ୟବାଦ। ଆପଣ ନିଶ୍ଚିତ କରିଥିବା ଉତ୍ତରଗୁଡ଼ିକ ରଖାଯାଇଛି। ଏବେ ଆପଣ ନିଜ ସୁଯୋଗ ଦେଖିପାରିବେ।']},
- {name:'Bengali',locale:'bn-IN',yes:['হ্যাঁ','ঠিক','ঠিক আছে'],no:['না','ভুল'],prompts:['নমস্কার! NayaPath-এ স্বাগতম। আমরা একবারে একটি প্রশ্ন করব। উত্তর দিতে না চাইলে বলতে পারেন, বাদ দিন।','আপনি এখন কী কাজ করেন?','আপনি কী চান: বর্তমান কাজে বেশি আয়, অতিরিক্ত আয়, নিজের ব্যবসা, নাকি নতুন দক্ষতা শেখা?','আপনি সাধারণত প্রতিদিন কত ঘণ্টা কাজ করেন?','সপ্তাহে সাধারণত কত দিন ছুটি পান?','কাজের পরে আপনার কেমন লাগে: শক্তি থাকে, একটু ক্লান্ত লাগে, নাকি খুব ক্লান্ত হয়ে বিশ্রাম দরকার হয়?','আপনার কাজ বা দৈনন্দিন জীবনে কী কী দক্ষতা ও কাজ জানেন?','আপনি কোন শহর বা জেলায় থাকেন বা কাজ করেন?','অন্য কাজ করতে কি মালিকের অনুমতি লাগে, অথবা কোনো নিয়মে বাধা আছে? হ্যাঁ, না বা জানি না বলুন।','আমি শুনেছি: {answer}। এটা কি ঠিক? হ্যাঁ বা না বলুন।','ধন্যবাদ। আপনার নিশ্চিত করা উত্তরগুলো রাখা হয়েছে। এখন আপনি আপনার সুযোগগুলো দেখতে পারেন।']},
- {name:'Tamil',locale:'ta-IN',yes:['ஆம்','சரி','ஆமாம்'],no:['இல்லை','தவறு'],prompts:['வணக்கம்! NayaPath-க்கு வரவேற்கிறோம். ஒவ்வொரு முறையும் ஒரு கேள்வி கேட்போம். பதில் சொல்ல விருப்பமில்லை என்றால் தவிர்க்கலாம்.','நீங்கள் இப்போது என்ன வேலை செய்கிறீர்கள்?','உங்களுக்கு எது வேண்டும்: தற்போதைய வேலையில் அதிக வருமானமா, கூடுதல் வருமானமா, சொந்தத் தொழிலா, அல்லது புதிய திறன்களைக் கற்றுக்கொள்வதா?','நீங்கள் வழக்கமாக ஒரு நாளில் எத்தனை மணி நேரம் வேலை செய்கிறீர்கள்?','ஒரு வாரத்தில் பொதுவாக எத்தனை நாட்கள் விடுமுறை கிடைக்கும்?','வேலைக்குப் பிறகு உங்களுக்கு எப்படி இருக்கும்: சுறுசுறுப்பாகவா, கொஞ்சம் சோர்வாகவா, அல்லது மிகவும் சோர்வாக ஓய்வு தேவைப்படுமா?','உங்கள் வேலை அல்லது அன்றாட வாழ்க்கையில் உங்களுக்கு என்ன திறன்கள் உள்ளன?','நீங்கள் எந்த நகரம் அல்லது மாவட்டத்தில் வசிக்கிறீர்கள் அல்லது வேலை செய்கிறீர்கள்?','வேறு வேலை செய்ய முதலாளியின் அனுமதி தேவையா அல்லது ஏதேனும் தடை உள்ளதா? ஆம், இல்லை அல்லது தெரியாது என்று சொல்லுங்கள்.','நான் கேட்டது: {answer}. இது சரியா? ஆம் அல்லது இல்லை என்று சொல்லுங்கள்.','நன்றி. நீங்கள் உறுதிப்படுத்திய பதில்களைச் சேமித்துள்ளோம். இப்போது உங்கள் வாய்ப்புகளைப் பார்க்கலாம்.']},
- {name:'Telugu',locale:'te-IN',yes:['అవును','సరే','కరెక్ట్'],no:['కాదు','తప్పు','లేదు'],prompts:['నమస్కారం! NayaPath కు స్వాగతం. మేము ఒక్కో ప్రశ్న అడుగుతాము. సమాధానం చెప్పకూడదనుకుంటే దాటవేయవచ్చు.','మీరు ప్రస్తుతం ఏ పని చేస్తున్నారు?','మీకు ఏది కావాలి: ప్రస్తుత పనిలో మెరుగైన ఆదాయం, అదనపు ఆదాయం, స్వంత వ్యాపారం, లేదా కొత్త నైపుణ్యాలు నేర్చుకోవడమా?','మీరు సాధారణంగా రోజుకు ఎన్ని గంటలు పని చేస్తారు?','వారానికి సాధారణంగా ఎన్ని రోజులు సెలవు ఉంటుంది?','పని తర్వాత మీకు ఎలా అనిపిస్తుంది: ఉత్సాహంగా ఉంటారా, కొంచెం అలసటగా ఉంటుందా, లేక చాలా అలసిపోయి విశ్రాంతి అవసరమా?','మీ పని లేదా రోజువారీ జీవితంలో మీకు ఏ నైపుణ్యాలు ఉన్నాయి?','మీరు ఏ నగరం లేదా జిల్లాలో ఉంటారు లేదా పని చేస్తారు?','బయట పని చేయడానికి యజమాని అనుమతి అవసరమా లేదా ఏదైనా నిబంధన అడ్డుకుంటుందా? అవును, కాదు లేదా తెలియదు అని చెప్పండి.','నేను విన్నది: {answer}. ఇది సరైనదేనా? అవును లేదా కాదు అని చెప్పండి.','ధన్యవాదాలు. మీరు నిర్ధారించిన సమాధానాలు భద్రపరిచాం. ఇప్పుడు మీ అవకాశాలను చూడవచ్చు.']},
- {name:'Marathi',locale:'mr-IN',yes:['हो','बरोबर','होय'],no:['नाही','चूक'],prompts:['नमस्कार! NayaPath मध्ये आपले स्वागत आहे. आम्ही एका वेळी एक प्रश्न विचारू. उत्तर द्यायचे नसेल तर वगळू शकता.','तुम्ही सध्या कोणते काम करता?','तुम्हाला काय हवे आहे: सध्याच्या कामात अधिक उत्पन्न, अतिरिक्त उत्पन्न, स्वतःचा व्यवसाय, की नवीन कौशल्ये शिकायची आहेत?','तुम्ही साधारणपणे दररोज किती तास काम करता?','आठवड्यात साधारण किती दिवस सुट्टी मिळते?','कामानंतर तुम्हाला कसे वाटते: ऊर्जा असते, थोडा थकवा असतो, की खूप थकून विश्रांतीची गरज असते?','तुमच्या कामात किंवा दैनंदिन जीवनात कोणती कौशल्ये आहेत?','तुम्ही कोणत्या शहरात किंवा जिल्ह्यात राहता किंवा काम करता?','दुसरे काम करण्यासाठी मालकाची परवानगी लागते का किंवा काही नियम अडथळा आणतात का? हो, नाही किंवा माहीत नाही असे सांगा.','मी ऐकले: {answer}. हे बरोबर आहे का? हो किंवा नाही सांगा.','धन्यवाद. तुम्ही निश्चित केलेली उत्तरे जतन केली आहेत. आता तुमच्या संधी पाहू शकता.']},
- {name:'Gujarati',locale:'gu-IN',yes:['હા','બરાબર','સાચું'],no:['ના','ખોટું'],prompts:['નમસ્તે! NayaPath માં આપનું સ્વાગત છે. અમે એક સમયે એક પ્રશ્ન પૂછીશું. જવાબ ન આપવો હોય તો છોડી શકો છો.','તમે હાલમાં કયું કામ કરો છો?','તમારે શું જોઈએ છે: હાલના કામમાં વધુ આવક, વધારાની આવક, પોતાનો વ્યવસાય, કે નવી કુશળતા શીખવી?','તમે સામાન્ય રીતે દરરોજ કેટલા કલાક કામ કરો છો?','અઠવાડિયામાં સામાન્ય રીતે કેટલા દિવસ રજા મળે છે?','કામ પછી તમને કેવું લાગે છે: ઊર્જા રહે છે, થોડો થાક લાગે છે, કે ખૂબ થાકીને આરામની જરૂર પડે છે?','તમારા કામ અથવા રોજિંદા જીવનમાં કઈ કુશળતા છે?','તમે કયા શહેર અથવા જિલ્લામાં રહો છો અથવા કામ કરો છો?','બીજું કામ કરવા માટે માલિકની મંજૂરી જરૂરી છે કે કોઈ નિયમ રોકે છે? હા, ના અથવા ખબર નથી કહો.','મેં સાંભળ્યું: {answer}. શું આ સાચું છે? હા અથવા ના કહો.','આભાર. તમે ખાતરી કરેલા જવાબો સાચવ્યા છે. હવે તમે તમારી તકો જોઈ શકો છો.']}
+type Language={name:string;locale:string};
+const languages:Language[]=[
+ {name:'Assamese',locale:'as-IN'},{name:'Bengali',locale:'bn-IN'},{name:'Bodo',locale:'brx-IN'},{name:'Dogri',locale:'doi-IN'},{name:'English',locale:'en-IN'},{name:'Gujarati',locale:'gu-IN'},{name:'Hindi',locale:'hi-IN'},{name:'Kannada',locale:'kn-IN'},{name:'Kashmiri',locale:'ks-IN'},{name:'Konkani',locale:'kok-IN'},{name:'Maithili',locale:'mai-IN'},{name:'Malayalam',locale:'ml-IN'},{name:'Manipuri (Meitei)',locale:'mni-IN'},{name:'Marathi',locale:'mr-IN'},{name:'Nepali',locale:'ne-IN'},{name:'Odia',locale:'or-IN'},{name:'Punjabi',locale:'pa-IN'},{name:'Sanskrit',locale:'sa-IN'},{name:'Santali',locale:'sat-IN'},{name:'Sindhi',locale:'sd-IN'},{name:'Tamil',locale:'ta-IN'},{name:'Telugu',locale:'te-IN'},{name:'Urdu',locale:'ur-IN'}
 ];
-const labels = ['Welcome','Occupation','Goal','Working hours','Days off','Energy','Skills','Location','Work restrictions'];
-type Values = {occupation:string;goal:string;hours:string;daysOff:string;energy:string;skills:string;location:string;contract:string};
-const initial:Values={occupation:'',goal:'extra',hours:'',daysOff:'',energy:'',skills:'',location:'',contract:'unknown'};
+type Values={occupation:string;goal:string;hours:string;daysOff:string;energy:string;skills:string;location:string;contract:string};
+const empty:Values={occupation:'',goal:'extra',hours:'',daysOff:'',energy:'',skills:'',location:'',contract:'unknown'};
+const welcome:Record<string,string>={
+ 'en-IN':'Welcome to NayaPath. Tell me, in your own words, what is happening in your work or life and what kind of help you need. I am listening.',
+ 'hi-IN':'नमस्ते! नया पथ में आपका स्वागत है। आप अपने काम या जीवन में क्या परेशानी महसूस कर रहे हैं और आपको किस तरह की मदद चाहिए, अपने शब्दों में बताइए। मैं सुन रहा हूँ।',
+ 'or-IN':'ନମସ୍କାର! NayaPath କୁ ସ୍ୱାଗତ। ଆପଣଙ୍କ କାମ କିମ୍ବା ଜୀବନରେ କେଉଁ ସମସ୍ୟା ଅଛି ଏବଂ କେଉଁ ସାହାଯ୍ୟ ଦରକାର, ନିଜ ଭାଷାରେ କୁହନ୍ତୁ। ମୁଁ ଶୁଣୁଛି।',
+ 'bn-IN':'নমস্কার! NayaPath-এ স্বাগতম। আপনার কাজ বা জীবনে কী সমস্যা হচ্ছে এবং কী ধরনের সাহায্য চান, নিজের ভাষায় বলুন। আমি শুনছি।',
+ 'ta-IN':'வணக்கம்! NayaPath-க்கு வரவேற்கிறோம். உங்கள் வேலை அல்லது வாழ்க்கையில் என்ன பிரச்சினை உள்ளது, என்ன உதவி வேண்டும் என்பதை உங்கள் சொந்த வார்த்தைகளில் சொல்லுங்கள். நான் கேட்கிறேன்.',
+ 'te-IN':'నమస్కారం! NayaPath కు స్వాగతం. మీ పని లేదా జీవితంలో ఏ సమస్య ఉంది, మీకు ఎలాంటి సహాయం కావాలో మీ మాటల్లో చెప్పండి. నేను వింటున్నాను.',
+ 'mr-IN':'नमस्कार! NayaPath मध्ये आपले स्वागत आहे. तुमच्या कामात किंवा आयुष्यात कोणती अडचण आहे आणि तुम्हाला कोणती मदत हवी आहे ते तुमच्या शब्दांत सांगा. मी ऐकत आहे.',
+ 'gu-IN':'નમસ્તે! NayaPath માં આપનું સ્વાગત છે. તમારા કામમાં અથવા જીવનમાં શું મુશ્કેલી છે અને તમને કેવી મદદ જોઈએ છે તે તમારા શબ્દોમાં કહો. હું સાંભળી રહ્યો છું.'
+};
+const literacy:Record<string,string>={
+ 'en-IN':'Thank you for sharing that. One important question: can you read and write in this language, or do you mainly speak it? You can say: I can read and write, or I can only speak.',
+ 'hi-IN':'अपनी बात बताने के लिए धन्यवाद। एक ज़रूरी सवाल: क्या आप इस भाषा को पढ़ और लिख सकते हैं, या केवल बोल सकते हैं? आप कह सकते हैं: मैं पढ़-लिख सकता हूँ, या मैं केवल बोल सकता हूँ।',
+ 'or-IN':'ଆପଣଙ୍କ କଥା କହିଥିବାରୁ ଧନ୍ୟବାଦ। ଗୋଟିଏ ଜରୁରୀ ପ୍ରଶ୍ନ: ଆପଣ ଏହି ଭାଷା ପଢ଼ି ଓ ଲେଖି ପାରନ୍ତି, ନା କେବଳ କହି ପାରନ୍ତି?',
+ 'bn-IN':'আপনার কথা জানানোর জন্য ধন্যবাদ। একটি জরুরি প্রশ্ন: আপনি কি এই ভাষা পড়তে ও লিখতে পারেন, নাকি শুধু বলতে পারেন?',
+ 'ta-IN':'உங்கள் நிலையைப் பகிர்ந்ததற்கு நன்றி. ஒரு முக்கியமான கேள்வி: இந்த மொழியை உங்களால் படிக்கவும் எழுதவும் முடியுமா, அல்லது பேச மட்டும்தானா தெரியும்?',
+ 'te-IN':'మీ విషయం చెప్పినందుకు ధన్యవాదాలు. ఒక ముఖ్యమైన ప్రశ్న: మీకు ఈ భాష చదవడం, రాయడం వచ్చా? లేక మాట్లాడటం మాత్రమే వచ్చా?',
+ 'mr-IN':'तुमची अडचण सांगितल्याबद्दल धन्यवाद. एक महत्त्वाचा प्रश्न: तुम्हाला ही भाषा वाचता आणि लिहिता येते का, की फक्त बोलता येते?',
+ 'gu-IN':'તમારી વાત જણાવવા બદલ આભાર. એક મહત્વનો પ્રશ્ન: શું તમે આ ભાષા વાંચી અને લખી શકો છો, કે ફક્ત બોલી શકો છો?'
+};
+const questions:Record<string,string[]> = {
+ 'en-IN':['What kind of work do you do now?','What would help most: better income in your current work, extra income, your own business, or learning for a different opportunity?','How many hours do you usually work each day?','How many days off do you usually get each week?','After work, do you feel energetic, a little tired, or exhausted?','What skills or tasks have you learned through work or daily life?','Which city or district do you live or work in?','Does your employer or agreement restrict other work, or require permission?'],
+ 'hi-IN':['आप अभी कौन सा काम करते हैं?','आपको सबसे ज़्यादा किस चीज़ में मदद चाहिए: अभी के काम में ज़्यादा कमाई, अतिरिक्त कमाई, अपना व्यवसाय, या नए काम के लिए सीखना?','आप रोज़ आमतौर पर कितने घंटे काम करते हैं?','हफ्ते में कितने दिन छुट्टी मिलती है?','काम के बाद आप कैसा महसूस करते हैं: ठीक, थोड़ा थका हुआ, या बहुत थका हुआ?','काम या रोज़मर्रा की ज़िंदगी से आपने कौन-कौन से हुनर सीखे हैं?','आप किस शहर या ज़िले में रहते या काम करते हैं?','क्या आपके मालिक या काम के नियम दूसरे काम पर रोक लगाते हैं या अनुमति ज़रूरी है?'],
+ 'or-IN':['ଆପଣ ବର୍ତ୍ତମାନ କେଉଁ କାମ କରୁଛନ୍ତି?','ଆପଣଙ୍କୁ କେଉଁ ସାହାଯ୍ୟ ଅଧିକ ଦରକାର: ବର୍ତ୍ତମାନ କାମରେ ଅଧିକ ଆୟ, ଅତିରିକ୍ତ ଆୟ, ନିଜ ବ୍ୟବସାୟ, ନା ନୂଆ କାମ ପାଇଁ ଶିଖିବା?','ଆପଣ ପ୍ରତିଦିନ କେତେ ଘଣ୍ଟା କାମ କରନ୍ତି?','ସପ୍ତାହରେ କେତେ ଦିନ ଛୁଟି ମିଳେ?','କାମ ପରେ ଆପଣଙ୍କୁ କେମିତି ଲାଗେ: ଭଲ, ଟିକେ ଥକା, ନା ବହୁତ ଥକା?','କାମ କିମ୍ବା ଦୈନନ୍ଦିନ ଜୀବନରୁ କେଉଁ କୌଶଳ ଶିଖିଛନ୍ତି?','ଆପଣ କେଉଁ ସହର କିମ୍ବା ଜିଲ୍ଲାରେ ରୁହନ୍ତି କିମ୍ବା କାମ କରନ୍ତି?','ଅନ୍ୟ କାମ କରିବାକୁ ମାଲିକଙ୍କ ଅନୁମତି ଦରକାର କିମ୍ବା କୌଣସି ନିୟମରେ ମନା ଅଛି କି?'],
+ 'bn-IN':['আপনি এখন কী কাজ করেন?','আপনার সবচেয়ে বেশি কী সাহায্য দরকার: বর্তমান কাজে বেশি আয়, অতিরিক্ত আয়, নিজের ব্যবসা, নাকি নতুন কাজ শেখা?','আপনি প্রতিদিন সাধারণত কত ঘণ্টা কাজ করেন?','সপ্তাহে কত দিন ছুটি পান?','কাজের পরে কেমন লাগে: ভালো, একটু ক্লান্ত, নাকি খুব ক্লান্ত?','কাজ বা দৈনন্দিন জীবন থেকে কী কী দক্ষতা শিখেছেন?','আপনি কোন শহর বা জেলায় থাকেন বা কাজ করেন?','অন্য কাজ করতে মালিকের অনুমতি লাগে বা কোনো নিয়মে বাধা আছে কি?'],
+ 'ta-IN':['நீங்கள் இப்போது என்ன வேலை செய்கிறீர்கள்?','உங்களுக்கு எது முக்கியம்: தற்போதைய வேலையில் அதிக வருமானம், கூடுதல் வருமானம், சொந்தத் தொழில், அல்லது புதிய வேலைக்கான பயிற்சியா?','ஒரு நாளில் எத்தனை மணி நேரம் வேலை செய்கிறீர்கள்?','வாரத்தில் எத்தனை நாட்கள் விடுமுறை கிடைக்கும்?','வேலைக்குப் பிறகு எப்படி உணர்கிறீர்கள்: நன்றாகவா, கொஞ்சம் சோர்வாகவா, மிகவும் சோர்வாகவா?','வேலை அல்லது அன்றாட வாழ்க்கையில் என்ன திறன்களைக் கற்றுள்ளீர்கள்?','எந்த நகரம் அல்லது மாவட்டத்தில் வசிக்கிறீர்கள் அல்லது வேலை செய்கிறீர்கள்?','வேறு வேலை செய்ய முதலாளியின் அனுமதி தேவையா அல்லது விதிமுறை தடையா?'],
+ 'te-IN':['మీరు ప్రస్తుతం ఏ పని చేస్తున్నారు?','మీకు ఏది ముఖ్యం: ప్రస్తుత పనిలో ఎక్కువ ఆదాయం, అదనపు ఆదాయం, స్వంత వ్యాపారం, లేదా కొత్త పని నేర్చుకోవడమా?','మీరు రోజుకు ఎన్ని గంటలు పని చేస్తారు?','వారానికి ఎన్ని రోజులు సెలవు ఉంటుంది?','పని తర్వాత ఎలా అనిపిస్తుంది: బాగుంటుందా, కొంచెం అలసటగా ఉంటుందా, చాలా అలసటగా ఉంటుందా?','పని లేదా రోజువారీ జీవితం ద్వారా ఏ నైపుణ్యాలు నేర్చుకున్నారు?','మీరు ఏ నగరం లేదా జిల్లాలో ఉంటారు లేదా పని చేస్తారు?','ఇతర పని చేయడానికి యజమాని అనుమతి అవసరమా లేదా ఏదైనా నియమం అడ్డుకుంటుందా?'],
+ 'mr-IN':['तुम्ही सध्या कोणते काम करता?','तुम्हाला कशाची जास्त गरज आहे: सध्याच्या कामात अधिक उत्पन्न, अतिरिक्त उत्पन्न, स्वतःचा व्यवसाय, की नवीन काम शिकणे?','तुम्ही दररोज किती तास काम करता?','आठवड्यात किती दिवस सुट्टी मिळते?','कामानंतर कसे वाटते: ठीक, थोडा थकवा, की खूप थकवा?','कामातून किंवा रोजच्या जीवनातून कोणती कौशल्ये शिकला आहात?','कोणत्या शहरात किंवा जिल्ह्यात राहता किंवा काम करता?','दुसरे काम करण्यासाठी मालकाची परवानगी लागते किंवा काही नियम अडथळा आणतात का?'],
+ 'gu-IN':['તમે હાલમાં કયું કામ કરો છો?','તમને સૌથી વધુ શેની જરૂર છે: હાલના કામમાં વધુ આવક, વધારાની આવક, પોતાનો વ્યવસાય, કે નવું કામ શીખવું?','તમે દરરોજ કેટલા કલાક કામ કરો છો?','અઠવાડિયામાં કેટલા દિવસ રજા મળે છે?','કામ પછી કેવું લાગે છે: સારું, થોડો થાક, કે ખૂબ થાક?','કામ અથવા રોજિંદા જીવનમાંથી કઈ કુશળતા શીખ્યા છો?','કયા શહેર અથવા જિલ્લામાં રહો છો અથવા કામ કરો છો?','બીજું કામ કરવા માલિકની મંજૂરી જરૂરી છે કે કોઈ નિયમ રોકે છે?']
+};
 type Props={onComplete:(values:Values,locale:string)=>void};
 export default function VoiceOnboarding({onComplete}:Props){
- const [lang,setLang]=useState(supported[0]);
- const [step,setStep]=useState(-1);
+ const browserLocale=typeof navigator!=='undefined'?navigator.language:'en-IN';
+ const [lang,setLang]=useState<Language>(()=>languages.find(x=>x.locale.toLowerCase()===browserLocale.toLowerCase())||languages.find(x=>x.locale===browserLocale.split('-')[0]+'-IN')||languages.find(x=>x.locale==='en-IN')!);
+ const [phase,setPhase]=useState<'intro'|'story'|'literacy'|'questions'|'done'>('intro');
+ const [index,setIndex]=useState(0);
  const [listening,setListening]=useState(false);
  const [speaking,setSpeaking]=useState(false);
- const [transcript,setTranscript]=useState('');
- const [pending,setPending]=useState('');
- const [awaitingConfirmation,setAwaitingConfirmation]=useState(false);
- const [values,setValues]=useState<Values>(initial);
- const [message,setMessage]=useState('Choose a supported language, then press Start. Voice support depends on the browser and device.');
+ const [needsTap,setNeedsTap]=useState(false);
  const [error,setError]=useState('');
+ const [voiceOnly,setVoiceOnly]=useState(true);
+ const [values,setValues]=useState<Values>(empty);
+ const [story,setStory]=useState('');
  const recognition=useRef<any>(null);
+ const active=useRef(true);
+ const busy=useRef(false);
+ const phaseRef=useRef(phase);
+ const indexRef=useRef(index);
+ const langRef=useRef(lang);
  const valuesRef=useRef(values);
+ const storyRef=useRef(story);
+ useEffect(()=>{phaseRef.current=phase;},[phase]);
+ useEffect(()=>{indexRef.current=index;},[index]);
+ useEffect(()=>{langRef.current=lang;},[lang]);
  useEffect(()=>{valuesRef.current=values;},[values]);
- const stopSpeech=()=>{if('speechSynthesis' in window) window.speechSynthesis.cancel();setSpeaking(false);};
- const say=(text:string)=>{if(!('speechSynthesis' in window)){setError('Speech playback is not available in this browser.');return;}stopSpeech();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=lang.locale;utterance.rate=0.88;utterance.onstart=()=>setSpeaking(true);utterance.onend=()=>setSpeaking(false);utterance.onerror=()=>{setSpeaking(false);setError('Your device does not have a usable voice for this language.');};window.speechSynthesis.speak(utterance);};
- const prompt=(index:number,answer='')=>{const raw=lang.prompts[index]||lang.prompts[0];return raw.replace('{answer}',answer);};
- const startListening=(confirmation=false)=>{
+ useEffect(()=>{storyRef.current=story;},[story]);
+ const speechText=(p:typeof phase,i=index)=>p==='intro'?(welcome[lang.locale]||welcome['en-IN']):p==='literacy'?(literacy[lang.locale]||literacy['en-IN']):p==='questions'?((questions[lang.locale]||questions['en-IN'])[i]):p==='done'?(lang.locale==='hi-IN'?'धन्यवाद। अब आपकी जानकारी के आधार पर अवसर देखे जा सकते हैं।':'Thank you. We can now explore opportunities based on what you shared.'):'';
+ const speak=useCallback((text:string,thenListen=true)=>{
+  if(!('speechSynthesis' in window)){setError('Speech playback is not available on this device.');setNeedsTap(true);return;}
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang=langRef.current.locale;u.rate=.88;
+  u.onstart=()=>setSpeaking(true);
+  u.onend=()=>{setSpeaking(false);if(thenListen&&active.current)startRef.current?.();};
+  u.onerror=()=>{setSpeaking(false);setError('This device does not have a voice installed for this language.');if(thenListen)setNeedsTap(true);};
+  window.speechSynthesis.speak(u);
+ },[]);
+ const applyAnswer=(text:string)=>{
+  const p=phaseRef.current;const loc=langRef.current.locale;const t=text.toLowerCase();
+  if(p==='intro'){setStory(text);storyRef.current=text;const inferred:Partial<Values>={occupation:text,skills:text};if(/business|व्यवसाय|दुकान|व्यापार|ବ୍ୟବସାୟ|ব্যবসা|தொழில்|వ్యాపారం|ધંધો|व्यवसाय/.test(t))inferred.goal='business';else if(/job|काम|नौकरी|आय|कमाई|ଟଙ୍କା|ରୋଜଗାର|টাকা|வருமானம்|ఆదాయం|उत्पन्न|આવક/.test(t))inferred.goal='better';setValues(v=>({...v,...inferred}));valuesRef.current={...valuesRef.current,...inferred};setPhase('literacy');speak(literacy[loc]||literacy['en-IN']);return;}
+  if(p==='literacy'){
+   const canRead=/read|write|पढ़|लिख|ପଢ଼|ଲେଖ|পড়|লিখ|படி|எழுது|చదవ|రాయ|वाच|लिह|વાંચ|લખ/.test(t);
+   const speakOnly=/only speak|speak only|सिर्फ बोल|केवल बोल|କେବଳ କହ|শুধু বল|பேச மட்டுமே|మాట్లాడటం మాత్రమే|फक्त बोल|ફક્ત બોલ/.test(t);
+   setVoiceOnly(!canRead||speakOnly);setPhase('questions');setIndex(0);speak((questions[loc]||questions['en-IN'])[0]);return;
+  }
+  if(p==='questions'){
+   const patch:Partial<Values>={};
+   if(indexRef.current===0)patch.occupation=text;
+   if(indexRef.current===1){if(/business|व्यवसाय|व्यापार|ବ୍ୟବସାୟ|ব্যবসা|தொழில்|వ్యాపారం|ધંધો/.test(t))patch.goal='business';else if(/skill|learn|कौशल|सीख|ଦକ୍ଷତା|শিখ|திறன்|నేర్చ|कौशल्य|શીખ/.test(t))patch.goal='skills';else if(/better|अधिक|ज्यादा|बेहतर|ଅଧିକ|বেশি|மேலும்|మెరుగైన|वधार|વધુ/.test(t))patch.goal='better';else patch.goal='extra';}
+   if(indexRef.current===2){const n=text.match(/\d+(?:\.\d+)?/);if(n)patch.hours=String(Math.min(18,Math.max(0,Number(n[0]))));}
+   if(indexRef.current===3){const n=text.match(/\d+/);if(n)patch.daysOff=String(Math.min(7,Math.max(0,Number(n[0]))));}
+   if(indexRef.current===4){if(/exhaust|बहुत थक|বহুৎ ক্লান্ত|খুব ক্লান্ত|மிகவும் சோர்வு|చాలా అలస|ખૂબ થાક/.test(t))patch.energy='exhausted';else if(/tired|थक|ক্লান্ত|சோர்வு|అలసట|થાક/.test(t))patch.energy='low';else patch.energy='good';}
+   if(indexRef.current===5)patch.skills=text;
+   if(indexRef.current===6)patch.location=text;
+   if(indexRef.current===7){if(/yes|हाँ|हां|ହଁ|হ্যাঁ|ஆம்|అవును|हो|હા/.test(t))patch.contract='approval';else if(/no|नहीं|ନା|না|இல்லை|కాదు|नाही|ના/.test(t))patch.contract='allowed';else patch.contract='unknown';}
+   const next={...valuesRef.current,...patch};setValues(next);valuesRef.current=next;
+   if(indexRef.current>=7){setPhase('done');onComplete(next,loc);speak(loc==='hi-IN'?'धन्यवाद। अब हम आपके लिए सही अवसर खोजने की दिशा में आगे बढ़ सकते हैं।':'Thank you. We can now explore suitable opportunities.',false);return;}
+   const n=indexRef.current+1;setIndex(n);speak((questions[loc]||questions['en-IN'])[n]);return;
+  }
+ };
+ const startRef=useRef<(()=>void)|null>(null);
+ const startListening=useCallback(()=>{
+  if(!active.current||busy.current)return;
   const SR=(window as any).SpeechRecognition||(window as any).webkitSpeechRecognition;
-  if(!SR){setError('Speech recognition is unavailable in this browser. Try Chrome on Android or a supported desktop browser.');return;}
-  stopSpeech();setError('');
-  const rec=new SR();recognition.current=rec;rec.lang=lang.locale;rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=1;
-  rec.onstart=()=>{setListening(true);setMessage(confirmation?'Please say yes or no.':'Listening. Speak naturally in your selected language.');};
-  rec.onerror=(e:any)=>{setListening(false);setError(e.error==='not-allowed'?'Microphone permission was denied. Allow microphone access and try again.':e.error==='language-not-supported'?'This browser does not support speech recognition for this language.':'I could not hear that clearly. Please try again.');};
-  rec.onend=()=>setListening(false);
-  rec.onresult=(e:any)=>{const text=String(e.results?.[0]?.[0]?.transcript||'').trim();setTranscript(text);if(confirmation) handleConfirmation(text);else{setPending(text);setAwaitingConfirmation(true);say(prompt(9,text));setMessage('Please confirm what I heard.');}};
-  try{rec.start();}catch{setListening(false);setError('The microphone could not start. Please try again.');}
- };
- const parse=(index:number,text:string):Partial<Values>=>{
-  const t=text.toLowerCase();
-  if(index===1)return {occupation:text};
-  if(index===2){if(/business|व्यवसाय|व्यापार|ବ୍ୟବସାୟ|ব্যবসা|தொழில்|వ్యాపారం|धंदा|ધંધો/.test(t))return {goal:'business'};if(/skill|learn|कौशल|सीख|ଦକ୍ଷତା|ଶିଖ|দক্ষতা|শিখ|திறன்|கற்க|నైపుణ్య|నేర్చ|कौशल्य|शिक|કૌશલ્ય|શીખ/.test(t))return {goal:'skills'};if(/better|अधिक|ज्यादा|बेहतर|ଅଧିକ|ভালো|বেশি|மேலும்|మెరుగైన|अधिक|વધુ/.test(t))return {goal:'better'};return {goal:'extra'};}
-  if(index===3){const n=text.match(/\d+(?:\.\d+)?/);return n?{hours:String(Math.min(18,Math.max(0,Number(n[0]))))}:{};}
-  if(index===4){const n=text.match(/\d+/);if(n)return {daysOff:String(Math.min(7,Math.max(0,Number(n[0]))))};if(/no|none|नहीं|କିଛି ନାହିଁ|নেই|இல்லை|లేదు/.test(t))return {daysOff:'0'};return {};}
-  if(index===5){if(/exhaust|very tired|बहुत थक|थक जाता|କ୍ଲାନ୍ତ|ବହୁତ ଥକ|খুব ক্লান্ত|மிகவும் சோர்வு|చాలా అలసట|खूप थक|ખૂબ થાક/.test(t))return {energy:'exhausted'};if(/tired|little|थोड़ा|थकान|ଟିକେ ଥକ|ক্লান্ত|சோர்வு|అలసట|थकवा|થાક/.test(t))return {energy:'low'};if(/energy|fine|good|ठीक|अच्छा|ऊर्जा|ଭଲ|ଶକ୍ତି|ভালো|சுறுசுறுப்பு|బాగుంది|चांगले|સારું/.test(t))return {energy:'good'};return {};}
-  if(index===6)return {skills:text};
-  if(index===7)return {location:text};
-  if(index===8){if(/yes|हाँ|ହଁ|হ্যাঁ|ஆம்|అవును|हो|હા/.test(t))return {contract:'approval'};if(/no|नहीं|ନା|না|இல்லை|కాదు|नाही|ના/.test(t))return {contract:'allowed'};return {contract:'unknown'};}
-  return {};
- };
- const handleConfirmation=(answer:string)=>{
-  const t=answer.toLowerCase();const yes=lang.yes.some(x=>t.includes(x.toLowerCase()));const no=lang.no.some(x=>t.includes(x.toLowerCase()));
-  if(yes){setAwaitingConfirmation(false);const patch=parse(step,pending);const next={...valuesRef.current,...patch};setValues(next);valuesRef.current=next;setPending('');setMessage('Answer confirmed.');if(step>=8){onComplete(next,lang.locale);setStep(10);say(prompt(10));}else{const n=step+1;setStep(n);say(prompt(n));}}
-  else if(no){setAwaitingConfirmation(false);setPending('');setMessage('Let us try that question again.');say(prompt(step));}
-  else{setAwaitingConfirmation(true);setMessage('I could not identify yes or no. Please try again.');say(prompt(9,pending));}
- };
- const begin=()=>{setValues(initial);valuesRef.current=initial;setAwaitingConfirmation(false);setStep(0);setTranscript('');setPending('');setMessage('Welcome.');say(prompt(0));};
- const skip=()=>{setPending('');setAwaitingConfirmation(false);if(step>=8){onComplete(valuesRef.current,lang.locale);setStep(10);say(prompt(10));return;}const n=step+1;setStep(n);say(prompt(n));};
- const stop=()=>{recognition.current?.stop?.();setListening(false);stopSpeech();setMessage('Paused. Resume when you are ready.');};
- return <section className="voice-onboarding" id="voice-start">
-  <div className="voice-intro"><span>VOICE-FIRST ONBOARDING</span><h2>Start with your <i>own voice.</i></h2><p>Choose a language and answer one spoken question at a time. You do not need to type. Your answers are confirmed before they are added to your profile.</p></div>
+  if(!SR){setError('This browser does not support speech recognition. Try an up-to-date Chrome browser.');setNeedsTap(true);return;}
+  try{
+   const rec=new SR();recognition.current=rec;rec.lang=langRef.current.locale;rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=3;
+   rec.onstart=()=>{busy.current=true;setListening(true);setError('');setNeedsTap(false);};
+   rec.onresult=(e:any)=>{const spoken=String(e.results?.[0]?.[0]?.transcript||'').trim();if(spoken)applyAnswer(spoken);};
+   rec.onerror=(e:any)=>{setError(e.error==='not-allowed'?'Allow microphone access once to start the conversation.':e.error==='language-not-supported'?'Speech recognition for this language is not supported by this browser. Choose another available speech language.':'I could not hear that clearly. I will listen again.');if(e.error==='not-allowed'||e.error==='service-not-allowed')setNeedsTap(true);};
+   rec.onend=()=>{busy.current=false;setListening(false);if(active.current&&phaseRef.current!=='done'&&!window.speechSynthesis?.speaking&&!needsTap)setTimeout(()=>startRef.current?.(),450);};
+   rec.start();
+  }catch{busy.current=false;setListening(false);setNeedsTap(true);setError('Tap once to allow the microphone, then the conversation can continue automatically.');}
+ },[]);
+ startRef.current=startListening;
+ const begin=useCallback(()=>{setNeedsTap(false);setError('');active.current=true;if(phaseRef.current==='intro')speak(welcome[langRef.current.locale]||welcome['en-IN']);else startListening();},[speak,startListening]);
+ useEffect(()=>{active.current=true;const id=window.setTimeout(()=>begin(),350);return()=>{active.current=false;window.clearTimeout(id);recognition.current?.stop?.();window.speechSynthesis?.cancel?.();};},[]);
+ const changeLanguage=(locale:string)=>{const selected=languages.find(x=>x.locale===locale);if(!selected)return;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setLang(selected);langRef.current=selected;setError('');setNeedsTap(false);if(phaseRef.current==='intro'){speak(welcome[locale]||welcome['en-IN']);}else{setError('Language changed. Please continue speaking in the selected language.');speak(speechText(phaseRef.current,indexRef.current));}};
+ const stop=()=>{active.current=false;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setListening(false);setSpeaking(false);setNeedsTap(true);setError('Conversation paused. Tap Continue when you are ready.');};
+ const currentStatus=listening?'Listening — speak naturally':speaking?'Speaking to you':needsTap?'Microphone needs one tap':phase==='done'?'Conversation complete':'Ready';
+ return <section className="voice-onboarding voice-first" id="voice-start" aria-label="NayaPath voice assistant">
+  <div className="voice-intro"><span>YOUR VOICE COMES FIRST</span><h2>Tell me what is <i>happening.</i></h2><p>You do not need to fill out a form. Just tell NayaPath what you need. The assistant will guide you by voice.</p></div>
   <div className="voice-console">
-   <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>On-device browser speech · no audio upload by this interface</small></div><label>LANGUAGE<select value={lang.name} onChange={e=>{const selected=supported.find(x=>x.name===e.target.value)!;setLang(selected);stop();setStep(-1);setMessage('Language changed. Press Start to begin again.');}}>{supported.map(x=><option key={x.name} value={x.name}>{x.name}</option>)}</select></label></div>
-   <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={38}/><b>{listening?'Listening…':speaking?'Speaking…':step===10?'Conversation complete':step<0?'Ready when you are':'Your turn to speak'}</b><small>{lang.name} · {lang.locale}</small></div>
-   <div className="voice-prompt"><small>{awaitingConfirmation?'PLEASE CONFIRM':step>=1&&step<=8?labels[step]:'ASSISTANT'}</small><p>{awaitingConfirmation?prompt(9,pending):step>=0&&step<=10?prompt(step, pending):message}</p>{transcript&&<div className="voice-transcript"><b>Recognised speech</b><p>{transcript}</p></div>}</div>
+   <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>Speak naturally. The assistant listens after each spoken prompt.</small></div><label>YOUR LANGUAGE<select aria-label="Speech language" value={lang.locale} onChange={e=>changeLanguage(e.target.value)}>{languages.map(x=><option key={x.locale} value={x.locale}>{x.name}</option>)}</select></label></div>
+   <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={40}/><b>{currentStatus}</b><small>{lang.name} · {lang.locale}</small></div>
+   {!voiceOnly&&phase!=='intro'&&<div className="voice-reading-mode"><b>Reading mode</b><span>Text is available because you said you can read and write. Voice guidance remains on.</span></div>}
+   {phase==='intro'&&<div className="voice-prompt voice-prompt-primary"><small>FIRST, TELL YOUR STORY</small><p>{welcome[lang.locale]||welcome['en-IN']}</p></div>}
+   {phase==='literacy'&&<div className="voice-prompt voice-prompt-primary"><small>ONE QUICK QUESTION</small><p>{literacy[lang.locale]||literacy['en-IN']}</p></div>}
+   {phase==='questions'&&<div className="voice-prompt voice-prompt-primary"><small>QUESTION {index+1} OF 8</small><p>{(questions[lang.locale]||questions['en-IN'])[index]}</p></div>}
+   {phase==='done'&&<div className="voice-prompt voice-prompt-primary"><small>THANK YOU</small><p>Your answers have been added to your NayaPath profile. The assistant has finished this first conversation.</p></div>}
    {error&&<p className="voice-error" role="alert">{error}</p>}
    <div className="voice-actions">
-    {step<0||step===10?<button className="voice-primary" onClick={begin}><Play size={17}/> {step===10?'Start again':'Start voice conversation'}</button>:<>
-      <button className="voice-primary" onClick={()=>startListening(awaitingConfirmation)} disabled={listening||speaking}><Mic size={17}/> {awaitingConfirmation?'Confirm answer':'Speak answer'}</button>
-      <button onClick={skip}>Skip <ChevronRight size={16}/></button>
-      <button onClick={stop}><Pause size={16}/> Pause</button>
-    </>}
-    {step>=0&&step<10&&<button onClick={()=>say(prompt(step, pending))}><Volume2 size={16}/> Repeat question</button>}
+    {needsTap&&phase!=='done'&&<button className="voice-primary" onClick={begin}><Mic size={17}/> {error.includes('paused')?'Continue':'Enable microphone / Continue'}</button>}
+    {phase!=='done'&&<button onClick={()=>speak(speechText(phase,index),true)}><Volume2 size={17}/> Repeat aloud</button>}
+    {phase!=='done'&&<button onClick={stop}>Pause conversation</button>}
    </div>
-   <div className="voice-foot"><span>{step>=1&&step<=8?'Question '+step+' of 8':'Your answers are only added after confirmation.'}</span><span>Microphone permission required</span></div>
+   <div className="voice-foot"><span>{phase==='intro'?'Tell your story first':phase==='literacy'?'Speaking and reading preference':phase==='questions'?'Guided conversation · '+(index+1)+'/8':'Your conversation is complete'}</span><span>{voiceOnly?'Voice-first mode':'Voice + reading mode'}</span></div>
   </div>
  </section>;
 }
