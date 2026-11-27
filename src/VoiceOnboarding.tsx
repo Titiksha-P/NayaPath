@@ -144,7 +144,7 @@ export default function VoiceOnboarding({onComplete}:Props){
  return <section className={'voice-onboarding voice-first '+(voiceOnly?'voice-only':'')} id="voice-start" aria-label="NayaPath voice assistant">
   <div className="voice-intro"><span>YOUR VOICE COMES FIRST</span><h2>Tell me what is <i>happening.</i></h2><p>You do not need to fill out a form. Just tell NayaPath what you need. The assistant will guide you by voice.</p></div>
   <div className="voice-console">
-   <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>Speak naturally. The assistant listens after each spoken prompt.</small></div><label>YOUR LANGUAGE<select aria-label="Speech language" value={lang.locale} onChange={e=>changeLanguage(e.target.value)}>{languages.map(x=><option key={x.locale} value={x.locale}>{x.name}</option>)}</select></label></div>
+   <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>Speak naturally. The assistant listens after each spoken prompt.</small></div><label>YOUR LANGUAGE<select aria-label="Speech language" value={hasChosenLanguage?lang.locale:""} onChange={e=>changeLanguage(e.target.value)}><option value="" disabled>Choose your language</option>{languages.map(x=><option key={x.locale} value={x.locale}>{x.name}</option>)}</select></label></div>
    <div className={'voice-orb '+(listening?'is-listening':speaking?'is-speaking':'')}><AudioLines size={40}/><b>{currentStatus}</b><small>{hasChosenLanguage?lang.name+' · '+lang.locale:'Select a language to begin'}</small></div>
    {phase==='intro'&&null}
    {phase==='literacy'&&<div className="voice-prompt voice-prompt-primary"><small>ONE QUICK QUESTION</small><p>{literacy[lang.locale]||literacy['en-IN']}</p></div>}
