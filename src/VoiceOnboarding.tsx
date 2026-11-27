@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AudioLines, Mic, Volume2 } from 'lucide-react';
-import { INDIC_LANGUAGES, translateText } from './languageService';
+import { INDIC_LANGUAGES } from './languageService';
 
 type Language={name:string;locale:string;code:string};
 const languages=INDIC_LANGUAGES;
@@ -72,9 +72,7 @@ export default function VoiceOnboarding({onComplete}:Props){
   window.speechSynthesis?.cancel();audioRef.current?.pause();
   setSpeaking(true);
   try{
-   const code=languages.find(x=>x.locale===langRef.current.locale)?.code||'en';
-   const response=await fetch('/api/synthesize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,language:code})});
-   if(response.ok){const data=await response.json();const audio=new Audio('data:audio/wav;base64,'+data.audioContent);audioRef.current=audio;audio.onended=()=>{setSpeaking(false);if(thenListen&&active.current)startRef.current?.();};audio.onerror=()=>{setSpeaking(false);setError('Generated speech could not be played.');};await audio.play();return;}
+   // Use browser speech synthesis; no external synthesis provider is configured.
   }catch{/* Use the device voice as a fallback. */}
   if(!('speechSynthesis' in window)){setSpeaking(false);setError('Speech playback is not available on this device.');setNeedsTap(true);return;}
   const synth=window.speechSynthesis;
@@ -131,7 +129,7 @@ export default function VoiceOnboarding({onComplete}:Props){
   try{
    const rec=new SR();recognition.current=rec;rec.lang=langRef.current.locale;rec.continuous=false;rec.interimResults=true;rec.maxAlternatives=3;
    rec.onstart=()=>{busy.current=true;setListening(true);setError('');setNeedsTap(false);};
-   rec.onresult=async(e:any)=>{let finalText='';let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const part=String(e.results[i]?.[0]?.transcript||'').trim();if(e.results[i].isFinal)finalText+=part+' ';else interim+=part+' ';}if(interim)setLastTranscript(interim.trim());if(!finalText.trim())return;const spoken=finalText.trim();setLastTranscript(spoken);setTranslationStatus('');const code=languages.find(x=>x.locale===langRef.current.locale)?.code||'en';if(code==='en'){setEnglishTranscript(spoken);applyAnswer(spoken);return;}setTranslationBusy(true);setTranslationStatus('Translating your words…');try{const result=await translateText(spoken,code,'en');setEnglishTranscript(result.translated);setTranslationStatus('English translation — check meaning if anything seems incorrect.');applyAnswer(result.translated);}catch{setEnglishTranscript('Translation is unavailable. Your original words are preserved.');setTranslationStatus('Could not translate this response. Please try again or continue only after confirming its meaning.');}finally{setTranslationBusy(false);}};
+   rec.onresult=(e:any)=>{let finalText='';let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const part=String(e.results[i]?.[0]?.transcript||'').trim();if(e.results[i].isFinal)finalText+=part+' ';else interim+=part+' ';}if(interim)setLastTranscript(interim.trim());if(!finalText.trim())return;const spoken=finalText.trim();setLastTranscript(spoken);setTranslationStatus('');const code=languages.find(x=>x.locale===langRef.current.locale)?.code||'en';if(code==='en'){setEnglishTranscript(spoken);applyAnswer(spoken);}else{setEnglishTranscript('English translation is not currently configured. Your original-language speech is preserved; this answer will not be interpreted as English.');setTranslationStatus('Automatic English translation is not yet available.');}};
    rec.onerror=(e:any)=>{setError(e.error==='not-allowed'?'Allow microphone access once to start the conversation.':e.error==='language-not-supported'?'Speech recognition for this language is not supported by this browser. Choose another available speech language.':'I could not hear that clearly. I will listen again.');if(e.error==='not-allowed'||e.error==='service-not-allowed'){setNeedsTap(true);active.current=false;}};
    rec.onend=()=>{busy.current=false;setListening(false);if(active.current&&phaseRef.current!=='done'&&!window.speechSynthesis?.speaking&&!needsTap)setTimeout(()=>startRef.current?.(),450);};
    rec.start();
