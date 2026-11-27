@@ -26,3 +26,35 @@
 .voice-only .voice-actions button{min-height:50px}
 @media(max-width:850px){.voice-first{min-height:auto;grid-template-columns:1fr;padding-top:36px;padding-bottom:36px}.voice-first .voice-intro{display:none}.voice-first .voice-console{max-width:720px;margin:auto}}
 @media(max-width:560px){.voice-first{padding:18px 4%}.voice-only .voice-console{min-height:320px}}
+
+
+/* Responsive, centered voice assistant layout */
+.voice-first.voice-only{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:center;width:100%;max-width:100%;min-height:calc(100svh - 76px);padding:clamp(20px,4vh,48px) clamp(16px,4vw,56px);margin:0 auto}
+.voice-first.voice-only .voice-console{width:min(100%,760px);max-width:760px;margin:0 auto;min-width:0}
+.voice-first.voice-only .voice-top{align-items:center;flex-direction:row;gap:18px}
+.voice-first.voice-only .voice-top>div{display:grid}
+.voice-first.voice-only .voice-top>div small{display:block!important}
+.voice-first.voice-only .voice-foot{display:flex!important}
+.voice-first.voice-only .voice-prompt{display:block!important}
+.voice-first.voice-only .voice-orb{width:clamp(130px,18vw,164px);height:clamp(130px,18vw,164px)}
+.voice-first.voice-only .voice-actions{justify-content:center}
+@media(max-width:700px){
+ .voice-first.voice-only{min-height:calc(100svh - 60px);padding:18px 14px;align-items:start}
+ .voice-first.voice-only .voice-console{width:100%;max-width:560px;padding:clamp(14px,4vw,22px);border-radius:16px}
+ .voice-first.voice-only .voice-top{align-items:stretch;flex-direction:column}
+ .voice-first.voice-only .voice-top label{width:100%}
+ .voice-first.voice-only .voice-top select{width:100%;max-width:none;min-height:44px}
+ .voice-first.voice-only .voice-orb{margin:18px auto;width:136px;height:136px}
+ .voice-first.voice-only .voice-prompt-primary{min-height:0}
+ .voice-first.voice-only .voice-prompt>p{font-size:14px}
+ .voice-first.voice-only .voice-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .voice-first.voice-only .voice-actions button{min-width:0;min-height:48px;padding:10px 8px;font-size:11px}
+ .voice-first.voice-only .voice-actions .voice-primary{grid-column:1/-1}
+ .voice-first.voice-only .voice-foot{font-size:10px;flex-wrap:wrap}
+}
+@media(max-width:380px){
+ .voice-first.voice-only .voice-console{padding:13px}
+ .voice-first.voice-only .voice-actions{grid-template-columns:1fr}
+ .voice-first.voice-only .voice-actions .voice-primary{grid-column:auto}
+ .voice-first.voice-only .voice-foot{display:grid!important}
+}
