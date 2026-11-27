@@ -129,6 +129,21 @@ The starter catalogue is deliberately occupation-agnostic and can be extended wi
 
 Automated tests include synthetic profiles across varied occupations and constraint combinations. These tests check engine invariants; they are not evidence that the catalogue covers every person's circumstances or that real-world recommendations are validated.
 
+## 🇮🇳 Verified Indian livelihood resource directory
+
+The discovery results can surface a curated set of official, India-wide portals with source attribution, evidence notes, verification date, audience tags and explicit safety caveats. Resources currently include:
+
+- **National Career Service (NCS):** government job search, career centres, job fairs and counselling. NCS states that registration, applications and interview processing are free.
+- **Skill India Digital Hub:** skill courses, skill centres, job exchange, sectors and job roles.
+- **Kisan Sarathi:** region-specific agriculture advisories and access to agricultural experts / KVK channels.
+- **e-NAM:** the National Agriculture Market and farmer-facing trading information.
+- **Udyam Registration:** official MSME registration information; the Ministry portal states registration is free and warns against unauthorised intermediaries.
+- **Farmers’ Portal:** government directory of farmer-facing services and scheme resources.
+
+Each resource is labelled as an India-wide directory or information portal. The user's city is not used to fabricate local vacancies. Local matching still requires checking the relevant district, participating centre/mandi, current batch, employer, eligibility and terms on the official destination. No portal card implies a live opening, subsidy approval, income estimate or guaranteed outcome.
+
+The source catalogue records a manual verification date and evidence summary. It is not an automated freshness monitor; links and programme details must be rechecked before each real-world referral. The UI includes a source-and-safety disclosure on every card.
+
 ## 🛡️ A future should fit real life—and real finances
 
 Exploring a new livelihood should not put someone's existing stability at risk.
