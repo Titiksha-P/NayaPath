@@ -65,3 +65,12 @@
 .voice-first.voice-only .voice-orb b{display:block;width:100%;max-width:100%;font-size:12px;line-height:1.3;text-align:center;white-space:normal;overflow-wrap:anywhere}
 .voice-first.voice-only .voice-orb small{display:block;width:100%;max-width:100%;font-size:10px;line-height:1.35;text-align:center;white-space:normal;overflow-wrap:anywhere}
 @media(max-width:560px){.voice-first.voice-only .voice-orb{width:150px;height:150px;padding:15px}}
+
+/* Conversational speech transcript: original language first, English interpretation second */
+.voice-live-transcripts{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin:16px 0 4px}
+.voice-live-transcripts .voice-transcript{min-width:0;margin:0;padding:13px 15px;border:1px solid #e6ebe3;border-radius:12px;background:#fbfcf9;overflow-wrap:anywhere}
+.voice-live-transcripts .voice-transcript b{display:block;font-size:10px;letter-spacing:.04em;color:#557360}
+.voice-live-transcripts .voice-transcript p{margin:7px 0 0;font-size:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.voice-live-transcripts .voice-english{background:#f3f6f2}
+.voice-live-transcripts .voice-transcript small{display:block;margin-top:7px;font-size:10px;line-height:1.4;color:#79877c}
+@media(max-width:640px){.voice-live-transcripts{grid-template-columns:1fr}.voice-live-transcripts .voice-transcript{padding:11px 12px}}
