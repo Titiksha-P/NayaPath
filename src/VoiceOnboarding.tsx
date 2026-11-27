@@ -75,6 +75,8 @@ export default function VoiceOnboarding({onComplete}:Props){
  },[]);
  const applyAnswer=(text:string)=>{
   const p=phaseRef.current;const loc=langRef.current.locale;const t=text.toLowerCase();
+  if(/^(skip|pass|छोड़ो|छोड़ दें|ଛାଡ଼ନ୍ତୁ|বাদ দিন|தவிர்க்கவும்|దాటవేయి|वगळा|છોડી દો)$/.test(t.trim())&&p==='questions'){if(indexRef.current>=7){setPhase('done');onComplete(valuesRef.current,loc);speak(loc==='hi-IN'?'धन्यवाद। अब हम आपके लिए सही अवसर खोजने की दिशा में आगे बढ़ सकते हैं।':'Thank you. We can now explore suitable opportunities.',false);}else{const n=indexRef.current+1;setIndex(n);speak((questions[loc]||questions['en-IN'])[n]);}return;}
+  if(/^(repeat|again|फिर से|दोबारा|ପୁଣିଥରେ|আবার|மீண்டும்|మళ్లీ|पुन्हा|ફરીથી)$/.test(t.trim())){speak(speechText(p,indexRef.current));return;}
   if(p==='intro'){setStory(text);storyRef.current=text;const inferred:Partial<Values>={occupation:text,skills:text};if(/business|व्यवसाय|दुकान|व्यापार|ବ୍ୟବସାୟ|ব্যবসা|தொழில்|వ్యాపారం|ધંધો|व्यवसाय/.test(t))inferred.goal='business';else if(/job|काम|नौकरी|आय|कमाई|ଟଙ୍କା|ରୋଜଗାର|টাকা|வருமானம்|ఆదాయం|उत्पन्न|આવક/.test(t))inferred.goal='better';setValues(v=>({...v,...inferred}));valuesRef.current={...valuesRef.current,...inferred};setPhase('literacy');speak(literacy[loc]||literacy['en-IN']);return;}
   if(p==='literacy'){
    const canRead=/read|write|पढ़|लिख|ପଢ଼|ଲେଖ|পড়|লিখ|படி|எழுது|చదవ|రాయ|वाच|लिह|વાંચ|લખ/.test(t);
@@ -105,7 +107,7 @@ export default function VoiceOnboarding({onComplete}:Props){
    const rec=new SR();recognition.current=rec;rec.lang=langRef.current.locale;rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=3;
    rec.onstart=()=>{busy.current=true;setListening(true);setError('');setNeedsTap(false);};
    rec.onresult=(e:any)=>{const spoken=String(e.results?.[0]?.[0]?.transcript||'').trim();if(spoken)applyAnswer(spoken);};
-   rec.onerror=(e:any)=>{setError(e.error==='not-allowed'?'Allow microphone access once to start the conversation.':e.error==='language-not-supported'?'Speech recognition for this language is not supported by this browser. Choose another available speech language.':'I could not hear that clearly. I will listen again.');if(e.error==='not-allowed'||e.error==='service-not-allowed')setNeedsTap(true);};
+   rec.onerror=(e:any)=>{setError(e.error==='not-allowed'?'Allow microphone access once to start the conversation.':e.error==='language-not-supported'?'Speech recognition for this language is not supported by this browser. Choose another available speech language.':'I could not hear that clearly. I will listen again.');if(e.error==='not-allowed'||e.error==='service-not-allowed'){setNeedsTap(true);active.current=false;}};
    rec.onend=()=>{busy.current=false;setListening(false);if(active.current&&phaseRef.current!=='done'&&!window.speechSynthesis?.speaking&&!needsTap)setTimeout(()=>startRef.current?.(),450);};
    rec.start();
   }catch{busy.current=false;setListening(false);setNeedsTap(true);setError('Tap once to allow the microphone, then the conversation can continue automatically.');}
@@ -116,7 +118,7 @@ export default function VoiceOnboarding({onComplete}:Props){
  const changeLanguage=(locale:string)=>{const selected=languages.find(x=>x.locale===locale);if(!selected)return;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setLang(selected);langRef.current=selected;setError('');setNeedsTap(false);if(phaseRef.current==='intro'){speak(welcome[locale]||welcome['en-IN']);}else{setError('Language changed. Please continue speaking in the selected language.');speak(speechText(phaseRef.current,indexRef.current));}};
  const stop=()=>{active.current=false;recognition.current?.stop?.();window.speechSynthesis?.cancel?.();setListening(false);setSpeaking(false);setNeedsTap(true);setError('Conversation paused. Tap Continue when you are ready.');};
  const currentStatus=listening?'Listening — speak naturally':speaking?'Speaking to you':needsTap?'Microphone needs one tap':phase==='done'?'Conversation complete':'Ready';
- return <section className="voice-onboarding voice-first" id="voice-start" aria-label="NayaPath voice assistant">
+ return <section className={'voice-onboarding voice-first '+(voiceOnly?'voice-only':'')} id="voice-start" aria-label="NayaPath voice assistant">
   <div className="voice-intro"><span>YOUR VOICE COMES FIRST</span><h2>Tell me what is <i>happening.</i></h2><p>You do not need to fill out a form. Just tell NayaPath what you need. The assistant will guide you by voice.</p></div>
   <div className="voice-console">
    <div className="voice-top"><div><b>NayaPath Voice Assistant</b><small>Speak naturally. The assistant listens after each spoken prompt.</small></div><label>YOUR LANGUAGE<select aria-label="Speech language" value={lang.locale} onChange={e=>changeLanguage(e.target.value)}>{languages.map(x=><option key={x.locale} value={x.locale}>{x.name}</option>)}</select></label></div>
