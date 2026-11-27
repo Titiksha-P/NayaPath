@@ -152,14 +152,16 @@ export default function VoiceOnboarding({onComplete}:Props){
      try{
       const blob=new Blob(chunks,{type:recorder?.mimeType||'audio/webm'});if(!blob.size)throw new Error('No speech audio was captured.');
       const base64=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');reader.onerror=()=>reject(new Error('Could not read microphone audio.'));reader.readAsDataURL(blob);});
-      const response=await fetch('/api/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audioContent:base64,language:'auto'})});
+      const response=await fetch('/api/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audioContent:base64,mimeType:blob.type||'audio/webm',language:'auto',includeTranslation:true})});
       const data=await response.json();if(!response.ok)throw new Error(data.error||'Automatic language recognition is unavailable.');
-      const raw=String(data.language||'').toLowerCase();const detected=languages.find(x=>x.code===raw||x.locale.toLowerCase()===raw||x.locale.toLowerCase().startsWith(raw+'-'));
+      const raw=String(data.language||'').toLowerCase();const normalizedRaw=raw==='od-in'?'or-in':raw;const detected=languages.find(x=>x.code===normalizedRaw||x.locale.toLowerCase()===normalizedRaw||x.locale.toLowerCase().startsWith(normalizedRaw+'-'));
       if(!detected)throw new Error('I heard your voice, but could not confidently identify its language. Please choose it from the language list.');
       if(cancelled)return;
       setLang(detected);langRef.current=detected;setHasChosenLanguage(true);setLastTranscript(data.transcript);setEnglishTranscript('');setNeedsTap(false);setError('');
       let understood=data.transcript;
-      if(detected.code!=='en'){try{setTranslationBusy(true);const translated=await translateText(data.transcript,detected.code,'en');understood=translated.translated;setEnglishTranscript(translated.translated);setTranslationStatus('English translation — check meaning if anything seems incorrect.');}catch{setEnglishTranscript('Translation unavailable; original speech retained.');setTranslationStatus('Translation is unavailable. Please confirm the meaning before continuing.');}finally{setTranslationBusy(false);}}else{setEnglishTranscript(data.transcript);setTranslationStatus('English speech recognized.');}
+      if(typeof data.englishTranslation==='string'&&data.englishTranslation.trim()){understood=data.englishTranslation;setEnglishTranscript(data.englishTranslation);setTranslationStatus('English translation from Sarvam Saaras v4. Please confirm important details.');}
+      else if(detected.code==='en'){setEnglishTranscript(data.transcript);setTranslationStatus('English speech recognized.');}
+      else{setEnglishTranscript('English translation is unavailable. Your original words are preserved.');setTranslationStatus('Translation could not be completed. Please confirm the meaning before continuing.');}
       if(cancelled)return;
       applyAnswer(understood);
      }catch(err){if(!cancelled){setError(err instanceof Error?err.message:'Could not understand the first recording. Choose your language and try again.');setNeedsTap(true);}}
