@@ -8,10 +8,6 @@ export function detectScriptLanguage(text:string):{language:IndicLanguage|null;c
  const hit=ranges.find(([,r])=>r.test(text));const language=hit?INDIC_LANGUAGES.find(x=>x.code===hit[0])||null:null;
  return {language,confidence:language?'medium':'low'};
 }
-export async function translateText(text:string,sourceLanguage:string,targetLanguage='en'){
- const response=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,sourceLanguage,targetLanguage})});
- const data=await response.json();if(!response.ok)throw new Error(data.error||'Translation unavailable');return data as {translated:string;sourceLanguage:string;targetLanguage:string;provider:string;reviewRequired:boolean};
-}
 export function extractHours(text:string):Extraction<number>{
  const match=text.match(/\b(\d{1,2}(?:\.\d)?)\s*(?:hours?|hrs?|घंटे|ଘଣ୍ଟା|ঘণ্টা|மணி|గంటలు|तास|કલાક)\b/i);
  if(!match)return {value:null,confidence:'unknown',evidence:'No explicit number of working hours found.',needsConfirmation:true};
