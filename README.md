@@ -275,6 +275,21 @@ NayaPath/
 └── README.md
 ```
 
+## Try before you trust: experiment → evidence → next step
+
+After pathway screening, the prototype offers a small, reversible experiment instead of asking the user to commit to a career change. The first digital-access example tests basic product photography with objects the user owns or has permission to photograph; other profiles receive a general existing-skill practice task. The task is designed to use existing tools, cost ₹0, avoid customer/employer data and remain optional.
+
+The experiment view includes:
+- A short task, time estimate, measurable evidence and reflection prompts.
+- A transparent explanation of why the experiment was selected and what remains unknown.
+- A side-by-side view of two existing rule-based pathways, with their current fit labels and uncertainties (no invented percentage scores).
+- A rule-based risk checklist covering money, time, current work, safety, reversibility and outside-work restrictions.
+- A self-reported Skill Evidence Card that can be printed or saved as PDF. It documents exploration only; it is not a qualification or verified skill certificate.
+
+The voice conversation now asks the person to confirm a spoken summary of the details they shared before the opportunity map is generated. They can correct misunderstood details by speaking naturally. This confirmation step depends on the configured Sarvam voice services and still requires real-device testing.
+
+**Prototype limits:** the experiment and evidence record run in the browser and are not stored in an account or backend. The current evidence is self-reported; there is no image upload, independent assessment, customer-demand verification or persistent progress history. The rule-based risk screen is not legal, employment or safety certification.
+
 ## 🚧 Where the project is today
 
 NayaPath is an **active prototype**, and we want to be transparent about what is implemented and what still needs work.
