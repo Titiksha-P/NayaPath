@@ -12,7 +12,7 @@ export type Opportunity = {
   id: string; title: string; pathway: Pathway; why: string; time: string; cost: string;
   checks: string[]; next: string; status: OpportunityStatus; score: number; matchedSignals: string[]; decisionReasons: string[];
 };
-type Candidate = Omit<Opportunity, 'status' | 'score' | 'matchedSignals'> & {
+type Candidate = Omit<Opportunity, 'status' | 'score' | 'matchedSignals' | 'decisionReasons'> & {
   tags: string[]; effort: 'low' | 'moderate' | 'high'; minBudget: number;
   requiresDigital: boolean; contractSensitive: boolean; physical: boolean;
 };
