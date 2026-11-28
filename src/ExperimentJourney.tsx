@@ -59,7 +59,9 @@ export default function ExperimentJourney({ profile, options }: Props) {
     return r.length ? r.join(" ") : "No hard conflict was identified by the current rules; verify the checks before proceeding.";
   };
   const next = evidence.completed && evidence.reflection.trim().length > 10 ? "Review what happened and repeat only if it still fits your time, energy and permissions." : "Record what happened. If it did not fit your life, stop or choose another direction.";
-  const needsContractCheck = profile.contract !== "allowed";\n  const canStart = !blocked && ack && (!needsContractCheck || contractChecked);\n  useEffect(() => { setStarted(false); setAck(false); setContractChecked(false); setConfirmed(false); setEvidence({ completed:false, tried:"", reflection:"", improved:"", interest:"" }); }, [experiment.title, profile.hoursPerDay, profile.daysOff, profile.energy, profile.contract, profile.device]);
+  const needsContractCheck = profile.contract !== "allowed";
+  const canStart = !blocked && ack && (!needsContractCheck || contractChecked);
+  useEffect(() => { setStarted(false); setAck(false); setContractChecked(false); setConfirmed(false); setEvidence({ completed:false, tried:"", reflection:"", improved:"", interest:"" }); }, [experiment.title, profile.hoursPerDay, profile.daysOff, profile.energy, profile.contract, profile.device]);
   return <section className="experiment-section" id="try-before-trust">
     <div className="experiment-heading"><span>FROM RECOMMENDATION TO REAL-WORLD EVIDENCE</span><h2>Try before <i>you trust.</i></h2><p>A small practice task selected from your profile and screened before it can begin.</p></div>
     <div className="experiment-grid">
