@@ -76,9 +76,9 @@ Try something unfamiliar, reflect on the experience and discover what feels wort
 
 Voice should be more than a microphone icon beside a form. It should make the experience feel natural and approachable.
 
-NayaPath's discovery flow includes browser-based speech input where supported, alongside ordinary typing and touch controls. The discovery screen now offers a language selector for all 22 languages listed in the Eighth Schedule of the Indian Constitution, plus English, and passes the selected locale to the browser Speech Recognition API. Actual recognition support and quality vary by browser, operating system and language; unsupported locales must fall back to typing. The interface copy is currently English, so this is not yet a fully translated 22-language experience. Translation, native-speaker review and device-by-device speech testing remain required.
+The live onboarding path uses Sarvam Saaras v4 realtime streaming: the browser captures microphone audio, sends short mono 16 kHz LINEAR16 frames through the server-side WebSocket proxy, displays partial and final transcripts, and submits each completed utterance to the Sarvam conversation service. NayaPath translates the utterance for reasoning, asks one adaptive follow-up question at a time, translates the response back, and speaks it with Bulbul v3 where supported. For other languages, the browser attempts an installed device voice.
 
-We want the experience to grow towards multilingual, conversational guidance—with clear consent, visible transcription and a reliable text alternative.
+The voice journey is intended to be voice-only; it does not require the person to fill out a form or type. Saaras v4 and Sarvam Translate cover 22 Indian languages plus English, while Bulbul v3 speech output covers 10 Indian languages plus English. Device voice availability varies. The integration still requires real-device and real-account validation for microphone permissions, audio quality, latency, transcription, translation, spoken playback and profile extraction; language coverage must not be confused with verified end-to-end quality.
 
 ## 🧠 Learn by trying: the adaptive assessment
 
