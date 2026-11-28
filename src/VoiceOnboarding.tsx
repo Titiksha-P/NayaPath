@@ -318,7 +318,8 @@ export default function VoiceOnboarding({ onComplete }: Props) {
         if (!disposed) {
           setError(err instanceof Error ? err.message : "Please allow microphone access to begin.");
           setStatus("Microphone or voice service unavailable.");
-          setMicrophoneRetryAvailable(true);
+          setRetryAvailable(true);
+          setRetryLabel("Retry voice connection");
         }
       }
     };
