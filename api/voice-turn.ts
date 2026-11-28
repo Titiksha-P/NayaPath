@@ -9,8 +9,9 @@ async function translateText(apiKey: string, text: string, source: string, targe
   const sourceCode = source === "or-IN" ? "od-IN" : source;
   const targetCode = target === "or-IN" ? "od-IN" : target;
   const model = MAYURA_LANGS.has(sourceCode) && MAYURA_LANGS.has(targetCode) ? "mayura:v1" : "sarvam-translate:v1";
+  const inputLimit = model === "mayura:v1" ? 1000 : 2000;
   const payload: Record<string, unknown> = {
-    input: text.slice(0, 1900),
+    input: text.slice(0, inputLimit),
     source_language_code: sourceCode,
     target_language_code: targetCode,
     model
