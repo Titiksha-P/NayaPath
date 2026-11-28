@@ -7,9 +7,8 @@ type Evidence = { completed: boolean; photos: string; reflection: string; improv
 
 function chooseExperiment(profile: Profile) {
   const hasPhone = profile.device === "smartphone" || profile.device === "computer";
-  const hasTime = profile.hoursPerDay !== null && profile.hoursPerDay <= 10;
   const rested = profile.energy !== "exhausted";
-  if (hasPhone && hasTime && rested && (profile.budget === null || profile.budget === 0)) {
+  if (hasPhone && rested && (profile.budget === null || profile.budget === 0)) {
     return {
       title: "Test whether product photography is worth exploring",
       subtitle: "A small experiment, not a promise of income.",
@@ -78,7 +77,7 @@ export default function ExperimentJourney({ profile, options }: Props) {
       <div className="experiment-kicker">WHY THIS PATHWAY · TRANSPARENT RULES</div>
       <h3>Why NayaPath suggested this</h3>
       <div className="reason-grid">
-        <div><b>Time</b><p>{profile.hoursPerDay === null ? "Your available time is not yet known; this task is deliberately short and optional." : profile.hoursPerDay <= 10 ? "A short task can be attempted outside work, only if you have genuine free time and feel rested." : "Your workday is long. This is reduced to a short optional task; rest takes priority."}</p></div>
+        <div><b>Time</b><p>{profile.hoursPerDay === null ? "Your free time has not been established. The work-hours answer is not treated as spare time; attempt this only in genuine discretionary time." : profile.hoursPerDay <= 10 ? "You reported a workday of up to 10 hours, not spare time. Attempt this only if you have genuine discretionary time and feel rested." : "Your workday is long. This is a short optional task; rest takes priority and the time estimate is not a claim that you have spare time."}</p></div>
         <div><b>Tools and cost</b><p>{profile.device === "smartphone" || profile.device === "computer" ? "Your profile indicates access to a digital device; no new equipment or paid tool is required." : "Your profile does not confirm suitable digital access, so the task uses an existing skill and offline materials."}</p></div>
         <div><b>Risk</b><p>It is private practice, reversible, and does not require quitting, spending, taking a loan or accepting client work.</p></div>
         <div><b>What we don't know</b><p>{experiment.uncertainty}</p></div>
