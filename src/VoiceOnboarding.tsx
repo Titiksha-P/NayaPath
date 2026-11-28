@@ -360,7 +360,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
             <p>{englishTranscript || "Your English translation will appear here after each turn."}</p>
           </section>
         </div>
-        {error && <div className="voice-error" role="alert"><p>{error}</p>{microphoneRetryAvailable && !configurationMissing && <button type="button" className="voice-retry" onClick={() => { setError(""); setStatus("Requesting microphone permission…"); setRetryToken(value => value + 1); }}><Mic size={16}/> Enable Microphone / Retry</button>}</div>}
+        {error && <div className="voice-error" role="alert"><p>{error}</p>{microphoneRetryAvailable && !configurationMissing && <button type="button" className="voice-retry" style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 10, padding: "11px 16px", border: 0, borderRadius: 999, background: "#214a37", color: "#fff", fontWeight: 700, cursor: "pointer" }} onClick={() => { setError(""); setStatus("Requesting microphone permission…"); setRetryToken(value => value + 1); }}><Mic size={16}/> Enable Microphone / Retry</button>}</div>}
         {configurationMissing && <div className="voice-config-fallback" role="status"><b>Demo mode — no API key required</b><p>You can still explore NayaPath without connecting to an external AI service. The opportunity planner and livelihood feasibility checks work locally.</p><a className="cta" href="#income-planner">Explore NayaPath without a key</a></div>}
         <div className="voice-foot"><span>{status}</span><span><Mic size={14}/> Voice-only mode</span></div>
       </div>
