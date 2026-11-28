@@ -46,6 +46,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
   const [englishTranscript, setEnglishTranscript] = useState("");
   const [assistantReply, setAssistantReply] = useState("");
   const [error, setError] = useState("");
+  const [configurationMissing, setConfigurationMissing] = useState(false);
   const [profile, setProfile] = useState<Values>(empty);
   const onCompleteRef = useRef(onComplete);
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
@@ -176,6 +177,17 @@ export default function VoiceOnboarding({ onComplete }: Props) {
 
     const start = async () => {
       try {
+        const configResponse = await fetch("/api/config", { cache: "no-store" });
+        if (configResponse.ok) {
+          const config = await configResponse.json();
+          if (config?.sarvamConfigured === false) {
+            setConfigurationMissing(true);
+            setListening(false);
+            setStatus("Live voice is unavailable in this local demo.");
+            setError("SARVAM_API_KEY not set. Add the key to enable live multilingual voice conversations.");
+            return;
+          }
+        }
         if (!navigator.mediaDevices?.getUserMedia) throw new Error("Microphone access requires a secure HTTPS connection and a supported browser.");
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
@@ -189,13 +201,17 @@ export default function VoiceOnboarding({ onComplete }: Props) {
 
         socket.onopen = () => setStatus("Connecting securely to Sarvam live speech…");
         socket.onerror = () => {
-          if (!disposed) setError("The live voice connection failed. Check the deployment and try again.");
+          if (!disposed) {
+            setListening(false);
+            setStatus("Live voice connection unavailable.");
+            setError("Could not connect to the live voice service. Check that the API server is running and SARVAM_API_KEY is configured.");
+          }
         };
         socket.onclose = () => {
           if (!disposed && !completedRef.current) {
             setListening(false);
-            setStatus("Voice connection closed.");
-            setError("The live speech connection ended. Refresh the page to start a new conversation.");
+            setStatus("Live voice connection unavailable.");
+            setError("The live speech service is not available. Check the server and SARVAM_API_KEY configuration.");
           }
         };
         socket.onmessage = async (event) => {
@@ -269,7 +285,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
       } catch (err) {
         if (!disposed) {
           setError(err instanceof Error ? err.message : "Please allow microphone access to begin.");
-          setStatus("Waiting for microphone access.");
+          setStatus("Microphone or voice service unavailable.");
         }
       }
     };
@@ -324,6 +340,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
           </section>
         </div>
         {error && <p className="voice-error" role="alert">{error}</p>}
+        {configurationMissing && <div className="voice-config-fallback" role="status"><b>Demo mode — no API key required</b><p>You can still explore NayaPath without connecting to an external AI service. The opportunity planner and livelihood feasibility checks work locally.</p><a className="cta" href="#income-planner">Explore NayaPath without a key</a></div>}
         <div className="voice-foot"><span>{status}</span><span><Mic size={14}/> Voice-only mode</span></div>
       </div>
     </section>
