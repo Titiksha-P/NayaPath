@@ -4,29 +4,47 @@ type Res = { status: (code: number) => Res; json: (value: unknown) => void };
 const SPEECH_LANGS = new Set(["en-IN","hi-IN","bn-IN","ta-IN","te-IN","kn-IN","ml-IN","mr-IN","gu-IN","pa-IN","or-IN"]);
 const MAYURA_LANGS = new Set(["en-IN","hi-IN","bn-IN","ta-IN","te-IN","kn-IN","ml-IN","mr-IN","gu-IN","pa-IN"]);
 
+function splitForTranslation(text: string, limit: number) {
+  const chunks: string[] = [];
+  let remaining = text.trim();
+  while (remaining.length > limit) {
+    let cut = remaining.lastIndexOf(" ", limit);
+    if (cut < Math.floor(limit * 0.6)) cut = limit;
+    chunks.push(remaining.slice(0, cut).trim());
+    remaining = remaining.slice(cut).trimStart();
+  }
+  if (remaining) chunks.push(remaining);
+  return chunks;
+}
+
 async function translateText(apiKey: string, text: string, source: string, target: string) {
   if (source === target || !text.trim()) return text;
   const sourceCode = source === "or-IN" ? "od-IN" : source;
   const targetCode = target === "or-IN" ? "od-IN" : target;
   const model = MAYURA_LANGS.has(sourceCode) && MAYURA_LANGS.has(targetCode) ? "mayura:v1" : "sarvam-translate:v1";
   const inputLimit = model === "mayura:v1" ? 1000 : 2000;
-  const payload: Record<string, unknown> = {
-    input: text.slice(0, inputLimit),
-    source_language_code: sourceCode,
-    target_language_code: targetCode,
-    model
-  };
-  if (model === "mayura:v1") payload.mode = "modern-colloquial";
-  const response = await fetch("https://api.sarvam.ai/translate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "api-subscription-key": apiKey },
-    body: JSON.stringify(payload)
-  });
-  const data: any = await response.json();
-  if (!response.ok || typeof data.translated_text !== "string") {
-    throw new Error("Sarvam translation failed (" + response.status + ").");
+  const chunks = splitForTranslation(text, inputLimit);
+  const translated: string[] = [];
+  for (const chunk of chunks) {
+    const payload: Record<string, unknown> = {
+      input: chunk,
+      source_language_code: sourceCode,
+      target_language_code: targetCode,
+      model
+    };
+    if (model === "mayura:v1") payload.mode = "modern-colloquial";
+    const response = await fetch("https://api.sarvam.ai/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "api-subscription-key": apiKey },
+      body: JSON.stringify(payload)
+    });
+    const data: any = await response.json();
+    if (!response.ok || typeof data.translated_text !== "string") {
+      throw new Error("Sarvam translation failed (" + response.status + ").");
+    }
+    translated.push(data.translated_text.trim());
   }
-  return data.translated_text.trim();
+  return translated.join(" ");
 }
 
 function parseAssistant(content: string) {
