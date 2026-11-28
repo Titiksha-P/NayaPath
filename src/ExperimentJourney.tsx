@@ -49,14 +49,7 @@ export default function ExperimentJourney({ profile, options }: Props) {
   const first = ranked[0], second = ranked.find(o => o.pathway !== first?.pathway) || ranked.find(o => o.id !== first?.id);
   const why = (o?: Opportunity) => {
     if (!o) return "No second alternative is available under the current goal.";
-    const r = [];
-    if (o.status === "avoid") r.push("Screened out by one or more constraints.");
-    if (tired) r.push("Low energy makes extra workload unsuitable.");
-    if (longHours) r.push("Long work hours limit available capacity.");
-    if (noDaysOff) r.push("No recovery day was reported.");
-    if (profile.contract !== "allowed" && o.pathway === "independent-livelihood") r.push("Outside-work permission is not established.");
-    if ((profile.device === "none" || profile.device === "limited") && /digital/i.test(o.title)) r.push("Reliable digital access is not confirmed.");
-    return r.length ? r.join(" ") : "No hard conflict was identified by the current rules; verify the checks before proceeding.";
+    return o.decisionReasons?.length ? o.decisionReasons.join(" ") : "No specific constraint reason was recorded; verify the checks before proceeding.";
   };
   const next = evidence.completed && evidence.reflection.trim().length > 10 ? "Review what happened and repeat only if it still fits your time, energy and permissions." : "Record what happened. If it did not fit your life, stop or choose another direction.";
   const needsContractCheck = profile.contract !== "allowed";
