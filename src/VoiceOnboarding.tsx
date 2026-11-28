@@ -292,14 +292,16 @@ export default function VoiceOnboarding({ onComplete }: Props) {
           if (message.event === "transcript.partial") {
             if (typeof message.text === "string") setPartial(message.text);
             if (typeof message.language === "string") {
-              const detected = languages.find(item => item.locale.toLowerCase() === message.language.toLowerCase());
+              const detectedCode = message.language.toLowerCase() === "od-IN" ? "or-IN" : message.language.toLowerCase();
+              const detected = languages.find(item => item.locale.toLowerCase() === detectedCode);
               if (detected) setLanguage(detected);
             }
             return;
           }
           if (message.event === "transcript.final") {
             const text = String(message.text || "").trim();
-            const locale = String(message.language || language?.locale || "").toLowerCase();
+            const rawLocale = String(message.language || language?.locale || "").toLowerCase();
+            const locale = rawLocale === "od-IN" ? "or-IN" : rawLocale;
             const detected = languages.find(item => item.locale.toLowerCase() === locale);
             if (detected) setLanguage(detected);
             setPartial("");
