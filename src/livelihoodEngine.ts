@@ -10,7 +10,7 @@ export type Profile = {
 };
 export type Opportunity = {
   id: string; title: string; pathway: Pathway; why: string; time: string; cost: string;
-  checks: string[]; next: string; status: OpportunityStatus; score: number; matchedSignals: string[];
+  checks: string[]; next: string; status: OpportunityStatus; score: number; matchedSignals: string[]; decisionReasons: string[];
 };
 type Candidate = Omit<Opportunity, 'status' | 'score' | 'matchedSignals'> & {
   tags: string[]; effort: 'low' | 'moderate' | 'high'; minBudget: number;
@@ -59,21 +59,32 @@ export function recommendOpportunities(p:Profile, source:Candidate[] = catalogue
    const relevant = c.tags.includes('all') || matched.length > 0;
    let status:OpportunityStatus = 'fit';
    const checks = [...c.checks];
-   let score = 35 + (relevant ? 20 : 0);
-   if (c.pathway === 'primary-income') score += 12;
-   if (c.pathway === 'capability-development') score += 7;
-   if (p.energy === 'good') score += 5;
-   if (p.budget === 0 && c.minBudget === 0) score += 5;
-   if (c.requiresDigital && digitalUnavailable) { status = 'avoid'; checks.unshift('This option currently requires reliable digital access; use an offline alternative or revisit if access changes.'); score -= 35; }
-   if (c.effort === 'high' && (longHours || depleted || noRest)) { status = 'avoid'; checks.unshift('Current work hours, rest or energy make this additional workload unsuitable right now.'); score -= 40; }
-   if (c.pathway === 'supplementary-income' && (longHours || depleted || noRest)) { status = 'avoid'; checks.unshift('Do not add another shift while work hours are long, recovery is limited or energy is depleted.'); score -= 50; }
-   if (c.pathway === 'supplementary-income' && p.hoursPerDay === null) { status = 'check'; checks.unshift('Working hours are unknown; do not assume spare time exists.'); }
-   if (c.pathway === 'supplementary-income' && p.daysOff === null) { status = 'check'; checks.unshift('Days off and actual recovery time are unknown.'); }
-   if (c.contractSensitive && p.contract === 'unknown') { status = status === 'avoid' ? status : 'check'; checks.unshift('Contract and outside-work policy are unknown; clarify them before pursuing this option.'); }
-   if (c.contractSensitive && (p.contract === 'approval' || p.contract === 'restricted')) { status = 'avoid'; checks.unshift('Outside work may require written approval or be restricted. Do not proceed unless the relevant authority confirms permission.'); score -= 45; }
-   if (p.budget === null && c.minBudget > 0) { status = status === 'avoid' ? status : 'check'; checks.unshift('Affordable budget is unknown; no spending recommendation can be made.'); }
-   if (p.location.trim() === '' && (c.pathway === 'primary-income' || c.pathway === 'independent-livelihood')) { status = status === 'avoid' ? status : 'check'; }
-   return {id:c.id,title:c.title,pathway:c.pathway,why:c.why,time:c.time,cost:c.cost,checks,next:c.next,status,score,matchedSignals:matched};
+   const reasons:string[] = [];
+   let score = 30;
+   if (relevant && matched.length) { score += 22; reasons.push('Your occupation or stated skills match: ' + matched.join(', ') + '.'); }
+   else if (c.tags.includes('all')) { score += 4; reasons.push('This is a broad option that does not depend on a specific skill match.'); }
+   else { score -= 12; reasons.push('No direct match with the occupation or skills you entered was found.'); }
+   if (c.pathway === 'primary-income') { score += p.goal === 'better' ? 24 : 8; }
+   if (c.pathway === 'capability-development') { score += p.goal === 'skills' ? 24 : 8; }
+   if (c.pathway === 'independent-livelihood') { score += p.goal === 'business' ? 24 : p.goal === 'extra' ? 5 : 0; }
+   if (c.pathway === 'supplementary-income') { score += p.goal === 'extra' ? 14 : 0; }
+   if (p.energy === 'good') { score += 5; reasons.push('You reported having some energy after work.'); }
+   if (depleted) { score -= 24; reasons.push('Low energy reduces the suitability of additional workload.'); }
+   if (longHours) { score -= 20; reasons.push('A 10+ hour workday reduces available capacity.'); }
+   if (noRest) { score -= 20; reasons.push('You reported no regular day off.'); }
+   if (p.hoursPerDay === null || p.daysOff === null) { score -= 5; reasons.push('Available time or recovery is not fully known.'); }
+   if (c.requiresDigital && digitalUnavailable) { status = 'avoid'; score -= 60; checks.unshift('This option requires reliable digital access, which your profile does not confirm.'); reasons.push('Digital access requirement is not met.'); }
+   if (c.effort === 'high' && (longHours || depleted || noRest)) { status = 'avoid'; score -= 45; checks.unshift('Current work hours, recovery or energy make this workload unsuitable.'); }
+   if (c.physical && (depleted || longHours)) { status = 'avoid'; score -= 35; checks.unshift('This option adds physical effort while your profile indicates limited recovery or a long workday.'); reasons.push('Physical workload conflicts with your current recovery constraints.'); }
+   if (c.pathway === 'supplementary-income' && (longHours || depleted || noRest)) { status = 'avoid'; score -= 50; checks.unshift('Do not add another shift while work hours are long or recovery is limited.'); }
+   if (c.pathway === 'supplementary-income' && (p.hoursPerDay === null || p.daysOff === null)) { if(status !== 'avoid') status = 'check'; checks.unshift('Confirm actual discretionary time and recovery before considering additional work.'); }
+   if (c.contractSensitive && p.contract === 'unknown') { if(status !== 'avoid') status = 'check'; checks.unshift('Outside-work policy is unknown; do not begin commercial activity until checked.'); score -= 12; reasons.push('Contract permission is unknown.'); }
+   if (c.contractSensitive && (p.contract === 'approval' || p.contract === 'restricted')) { status = 'avoid'; score -= 55; checks.unshift('Outside work requires approval or is restricted. Do not proceed commercially without written permission.'); reasons.push('Contract status blocks outside commercial activity.'); }
+   if (c.minBudget > (p.budget ?? 0)) { if(status !== 'avoid') status = p.budget === null ? 'check' : 'avoid'; score -= p.budget === null ? 8 : 35; checks.unshift('The stated minimum budget exceeds what you have confirmed as available.'); reasons.push('Budget requirement is not currently established as affordable.'); }
+   if (!p.location.trim() && (c.pathway === 'primary-income' || c.pathway === 'independent-livelihood')) { if(status !== 'avoid') status = 'check'; checks.unshift('Location is needed to verify local availability and requirements.'); reasons.push('Local feasibility cannot yet be checked without a location.'); }
+   if (p.commuteMinutes !== null && p.commuteMinutes >= 60 && c.physical) { score -= 8; reasons.push('Your commute adds to the time and recovery burden for this physical option.'); }
+   if (p.family.trim() && (c.pathway === 'supplementary-income' || c.pathway === 'independent-livelihood')) { score -= 4; reasons.push('Household responsibilities should be included when checking time and feasibility.'); }
+   return {id:c.id,title:c.title,pathway:c.pathway,why:c.why,time:c.time,cost:c.cost,checks,next:c.next,status,score,matchedSignals:matched,decisionReasons:reasons};
  }).sort((a,b) => (a.status === 'avoid' ? 1 : 0) - (b.status === 'avoid' ? 1 : 0) || b.score-a.score);
 }
 export function pathwayLabel(p:Pathway) {
