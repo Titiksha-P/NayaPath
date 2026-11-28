@@ -198,13 +198,17 @@ npm run dev
 
 Open the local URL printed by Vite (usually `http://localhost:5173`).
 
-### Run with Docker
+### Run with Docker (zero-key demo)
 
 ```bash
 docker compose up --build
 ```
 
 Then open [http://localhost:4173](http://localhost:4173).
+
+**No `.env` file or API key is required.** The Docker image serves the local NayaPath experience in clearly labelled demo mode. The voice panel immediately displays `SARVAM_API_KEY not set` and links to the local opportunity planner; it does not request microphone access, pretend to be listening, or silently wait for Sarvam.
+
+The Docker image is a static Nginx demo and does **not** run the Node/Vercel API handlers or the live Sarvam WebSocket proxy. Live AI voice conversations require the deployed API backend with `SARVAM_API_KEY` configured as a server-side secret. Do not put the key in frontend code or commit it to Git.
 
 ### Available scripts
 
