@@ -47,6 +47,8 @@ export default function VoiceOnboarding({ onComplete }: Props) {
   const [assistantReply, setAssistantReply] = useState("");
   const [error, setError] = useState("");
   const [configurationMissing, setConfigurationMissing] = useState(false);
+  const [microphoneRetryAvailable, setMicrophoneRetryAvailable] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
   const [profile, setProfile] = useState<Values>(empty);
   const onCompleteRef = useRef(onComplete);
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
@@ -176,6 +178,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
     };
 
     const start = async () => {
+      setMicrophoneRetryAvailable(false);
       try {
         const configResponse = await fetch("/api/config", { cache: "no-store" });
         if (configResponse.ok) {
@@ -189,9 +192,26 @@ export default function VoiceOnboarding({ onComplete }: Props) {
           }
         }
         if (!navigator.mediaDevices?.getUserMedia) throw new Error("Microphone access requires a secure HTTPS connection and a supported browser.");
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-        });
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
+        } catch (permissionError) {
+          const name = permissionError instanceof DOMException ? permissionError.name : "";
+          setMicrophoneRetryAvailable(true);
+          if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+            setError("Microphone permission was dismissed or blocked. Select Enable Microphone / Retry to ask again. If your browser has permanently blocked access, allow the microphone for this site in its address-bar permissions first.");
+            setStatus("Waiting for microphone access.");
+          } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+            setError("No microphone was found. Connect or enable a microphone, then select Retry.");
+            setStatus("Microphone not found.");
+          } else {
+            setError(permissionError instanceof Error ? permissionError.message : "Microphone access failed. Select Retry to try again.");
+            setStatus("Waiting for microphone access.");
+          }
+          return;
+        }
         if (disposed) { stream.getTracks().forEach(track => track.stop()); return; }
         streamRef.current = stream;
 
@@ -286,6 +306,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
         if (!disposed) {
           setError(err instanceof Error ? err.message : "Please allow microphone access to begin.");
           setStatus("Microphone or voice service unavailable.");
+          setMicrophoneRetryAvailable(true);
         }
       }
     };
@@ -301,7 +322,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
       window.speechSynthesis?.cancel();
       stopAudioGraph();
     };
-  }, []);
+  }, [retryToken]);
 
   return (
     <section className="voice-onboarding voice-first voice-only" id="voice-start" aria-label="NayaPath live voice assistant">
@@ -339,7 +360,7 @@ export default function VoiceOnboarding({ onComplete }: Props) {
             <p>{englishTranscript || "Your English translation will appear here after each turn."}</p>
           </section>
         </div>
-        {error && <p className="voice-error" role="alert">{error}</p>}
+        {error && <div className="voice-error" role="alert"><p>{error}</p>{microphoneRetryAvailable && !configurationMissing && <button type="button" className="voice-retry" onClick={() => { setError(""); setStatus("Requesting microphone permission…"); setRetryToken(value => value + 1); }}><Mic size={16}/> Enable Microphone / Retry</button>}</div>}
         {configurationMissing && <div className="voice-config-fallback" role="status"><b>Demo mode — no API key required</b><p>You can still explore NayaPath without connecting to an external AI service. The opportunity planner and livelihood feasibility checks work locally.</p><a className="cta" href="#income-planner">Explore NayaPath without a key</a></div>}
         <div className="voice-foot"><span>{status}</span><span><Mic size={14}/> Voice-only mode</span></div>
       </div>
