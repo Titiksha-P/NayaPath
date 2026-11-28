@@ -224,9 +224,27 @@ NayaPath is being developed as a lightweight web application with a deliberately
 - **Lucide React** — interface iconography.
 - **Vitest** — assessment-engine unit tests.
 - **Docker + Nginx** — containerised static deployment.
-- **Web Speech API** — browser-dependent speech input with typed fallback.
+- **Sarvam realtime voice services** — streaming speech recognition, multilingual conversation, translation and spoken responses.
 - **Local storage** — prototype progress persistence in the user's browser.
 - **PWA shell** — manifest and service-worker foundation.
+
+### 🎙️ Live multilingual voice conversation (Sarvam)
+
+NayaPath's voice onboarding is designed as a continuous, voice-only conversation. The user does not choose a language or fill a form first: the microphone opens, Sarvam Saaras v4 detects the spoken language, and NayaPath responds one turn at a time.
+
+- `/api/voice.ts` — authenticated server-side WebSocket proxy to Sarvam's Saaras v4 realtime streaming endpoint. The long-lived API key stays on the server.
+- `/api/voice-turn.ts` — translates the utterance to English for conversation reasoning, calls Sarvam-105B Conversations, translates the reply back, extracts explicitly stated profile fields, and generates spoken audio where Bulbul supports the language.
+- The browser streams mono 16 kHz LINEAR16 PCM in short frames. Interim transcripts appear while the user speaks; VAD detects the end of each turn.
+- The UI shows the original-language transcript and its English meaning. The assistant replies aloud and then resumes listening automatically.
+- The conversation starts by asking whether the person can read and write or mainly speaks, then adapts its questions to the details already shared. It must not ask the user to type.
+
+### Configure Sarvam
+
+Set `SARVAM_API_KEY` as a **Secret** in Vercel Project → Settings → Environment Variables for Production, then redeploy. For local development, copy `.env.example` to `.env` and keep that file out of Git.
+
+### Language coverage and limitations
+
+Saaras v4 realtime STT and Sarvam Translate support all 22 scheduled Indian languages plus English. Bulbul v3 TTS supports 10 Indian languages plus English; for other languages the client attempts the device's installed speech voice. Device voice availability varies, so spoken replies are not yet guaranteed on every device for every language. This integration still needs real-device testing for microphone permissions, audio quality, latency, translation quality and profile extraction before it should be described as production-validated.
 
 ### Project map
 
@@ -301,21 +319,3 @@ NayaPath is being built around a simple belief: **people deserve the space to di
 Made with curiosity, care and the belief that everyone deserves room to grow. 🌱
 
 </div>
-
-## 🎙️ Live multilingual voice conversation (Sarvam)
-
-NayaPath's voice onboarding is designed as a continuous, voice-only conversation. The user does not choose a language or fill a form first: the microphone opens, Sarvam Saaras v4 detects the spoken language, and NayaPath responds one turn at a time.
-
-- `/api/voice.ts` — authenticated server-side WebSocket proxy to Sarvam's Saaras v4 realtime streaming endpoint. The long-lived API key stays on the server.
-- `/api/voice-turn.ts` — translates the utterance to English for conversation reasoning, calls Sarvam-105B Conversations, translates the reply back, extracts explicitly stated profile fields, and generates spoken audio where Bulbul supports the language.
-- The browser streams mono 16 kHz LINEAR16 PCM in short frames. Interim transcripts appear while the user speaks; VAD detects the end of each turn.
-- The UI shows the original-language transcript and its English meaning. The assistant replies aloud and then resumes listening automatically.
-- The conversation starts by asking whether the person can read and write or mainly speaks, then adapts its questions to the details already shared. It must not ask the user to type.
-
-### Configure Sarvam
-
-Set `SARVAM_API_KEY` as a **Secret** in Vercel Project → Settings → Environment Variables for Production, then redeploy. For local development, copy `.env.example` to `.env` and keep that file out of Git.
-
-### Language coverage and limitations
-
-Saaras v4 realtime STT and Sarvam Translate support all 22 scheduled Indian languages plus English. Bulbul v3 TTS supports 10 Indian languages plus English; for other languages the client attempts the device's installed speech voice. Device voice availability varies, so spoken replies are not yet guaranteed on every device for every language. This integration still needs real-device testing for microphone permissions, audio quality, latency, translation quality and profile extraction before it should be described as production-validated.
