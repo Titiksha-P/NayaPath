@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Clock3, Download, ShieldCheck, Sparkles } from "lucide-react";
 import type { Opportunity, Profile } from "./livelihoodEngine";
 
@@ -26,17 +26,22 @@ export default function ExperimentJourney({ profile, options }: Props) {
   const experiment = useMemo(() => chooseExperiment(profile), [profile.occupation, profile.skills, profile.device, profile.energy, profile.budget]);
   const [started, setStarted] = useState(false);
   const [ack, setAck] = useState(false);
+  const [contractChecked, setContractChecked] = useState(false);
+  const [recordId, setRecordId] = useState("");
+  const [recordedAt, setRecordedAt] = useState("");
   const [evidence, setEvidence] = useState<Evidence>({ completed: false, tried: "", reflection: "", improved: "", interest: "" });
   const [confirmed, setConfirmed] = useState(false);
   const update = (key: keyof Evidence, value: string | boolean) => setEvidence(old => ({ ...old, [key]: value }));
   const longHours = profile.hoursPerDay !== null && profile.hoursPerDay >= 10;
   const noDaysOff = profile.daysOff === 0;
+  const timeUnknown = profile.hoursPerDay === null || profile.daysOff === null;
   const tired = profile.energy === "low" || profile.energy === "exhausted";
   const blocked = tired || longHours || noDaysOff || (experiment.digital && (profile.device === "none" || profile.device === "limited"));
   const reasons = [
     ...(tired ? ["Your energy is low or exhausted. Rest first; starting is disabled."] : []),
     ...(longHours ? ["You reported at least 10 work hours a day. The system will not add another task."] : []),
     ...(noDaysOff ? ["You reported no days off. The system will not add another task."] : []),
+    ...(timeUnknown ? ["Your work hours or days off are unknown. Confirm genuine discretionary time before starting."] : []),
     ...(experiment.digital && (profile.device === "none" || profile.device === "limited") ? ["Required digital access is unavailable; choose an offline pathway."] : [])
   ];
   const contractNote = profile.contract === "allowed" ? "You reported outside work is allowed, but this exercise is still private practice only." : profile.contract === "approval" ? "You reported approval is required. No paid work, client contact or commercial activity is permitted by this exercise." : profile.contract === "restricted" ? "You reported outside-work restrictions. This is private, non-commercial practice only; if your policy also restricts this, do not start." : "Outside-work rules are unknown. Keep this strictly private and non-commercial; clarify the policy before any outside activity.";
@@ -53,7 +58,7 @@ export default function ExperimentJourney({ profile, options }: Props) {
     if ((profile.device === "none" || profile.device === "limited") && /digital/i.test(o.title)) r.push("Reliable digital access is not confirmed.");
     return r.length ? r.join(" ") : "No hard conflict was identified by the current rules; verify the checks before proceeding.";
   };
-  const next = evidence.completed && evidence.reflection.trim().length > 10 ? "Review what happened and repeat only if it still fits your time, energy and permissions." : "Record what happened. If it did not fit your life, stop or choose another direction.";
+  const next = evidence.completed && evidence.reflection.trim().length > 10 ? "Review what happened and repeat only if it still fits your time, energy and permissions." : "Record what happened. If it did not fit your life, stop or choose another direction.";\n  const needsContractCheck = profile.contract !== "allowed";\n  const canStart = !blocked && ack && (!needsContractCheck || contractChecked);\n  useEffect(() => { setStarted(false); setAck(false); setContractChecked(false); setConfirmed(false); setEvidence({ completed:false, tried:"", reflection:"", improved:"", interest:"" }); }, [experiment.title, profile.hoursPerDay, profile.daysOff, profile.energy, profile.contract, profile.device]);
   return <section className="experiment-section" id="try-before-trust">
     <div className="experiment-heading"><span>FROM RECOMMENDATION TO REAL-WORLD EVIDENCE</span><h2>Try before <i>you trust.</i></h2><p>A small practice task selected from your profile and screened before it can begin.</p></div>
     <div className="experiment-grid">
@@ -93,16 +98,16 @@ export default function ExperimentJourney({ profile, options }: Props) {
     </div>
     <div className="experiment-card evidence-card">
       <div className="experiment-kicker">AFTER THE EXPERIMENT</div><h3>Turn the attempt into evidence</h3><p>This dated record is self-reported, not a certificate or independent assessment.</p>
-      <label className="evidence-check"><input type="checkbox" checked={evidence.completed} onChange={e=>update("completed",e.target.checked)}/> I attempted or completed the task</label>
+      <label className="evidence-check"><input type="checkbox" checked={evidence.completed} disabled={!started || blocked} onChange={e=>update("completed",e.target.checked)}/> I attempted or completed the task</label>
       <label>What did you make or try?<textarea value={evidence.tried} onChange={e=>update("tried",e.target.value)} placeholder="Describe what you tried…"/></label>
       <label>What did you learn? (required)<textarea value={evidence.reflection} onChange={e=>update("reflection",e.target.value)} placeholder="What went well? What was difficult?"/></label>
       <label>What would you improve?<textarea value={evidence.improved} onChange={e=>update("improved",e.target.value)} placeholder="One possible improvement…"/></label>
       <label>How did it feel?<select value={evidence.interest} onChange={e=>update("interest",e.target.value)}><option value="">Choose if you wish</option><option value="enjoyed">I enjoyed it</option><option value="mixed">Some parts were interesting</option><option value="disliked">I did not enjoy it</option><option value="unsure">I am unsure</option></select></label>
       <div className="next-guidance"><b>Your next step</b><p>{next}</p></div>
-      <button className="experiment-primary" onClick={()=>setConfirmed(true)} disabled={!evidence.completed || evidence.reflection.trim().length <= 10}>Create my exploration record</button>
+      <button className="experiment-primary" onClick={()=>{setRecordId("NP-" + Date.now().toString(36).toUpperCase());setRecordedAt(new Date().toISOString());setConfirmed(true);}} disabled={!started || blocked || !evidence.completed || evidence.reflection.trim().length <= 10}>Create my exploration record</button>
       {confirmed && <div className="proof-card" id="proof-of-progress">
         <div className="proof-brand">NayaPath · EXPLORATION RECORD <span>SELF-REPORTED · NOT A CERTIFICATE</span></div><h3>Skill Evidence Card</h3><h4>{experiment.title}</h4><div className="proof-status">✓ EXPERIMENT ATTEMPTED</div>
-        <p><b>Date recorded</b><br/>{new Date().toLocaleDateString("en-IN", {day:"2-digit",month:"long",year:"numeric"})}</p>
+        <p><b>Record ID</b><br/>{recordId}</p><p><b>Date recorded</b><br/>{new Date(recordedAt).toLocaleDateString("en-IN", {day:"2-digit",month:"long",year:"numeric"})}</p>
         <p><b>What I tried</b><br/>{evidence.tried || "Task attempted; details not supplied."}</p><p><b>What I learned</b><br/>{evidence.reflection}</p><p><b>What I would improve</b><br/>{evidence.improved || "Not recorded"}</p><p><b>Interest</b><br/>{evidence.interest || "Not recorded"}</p><p><b>Next step</b><br/>{next}</p>
         <small>This record is self-reported and not independently verified. It is not stored in an account; use Print / Save as PDF to keep it.</small>
         <button className="experiment-primary no-print" onClick={()=>window.print()}><Download size={16}/> Print / Save as PDF</button>
